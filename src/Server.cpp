@@ -6,7 +6,7 @@
 /*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/05 16:47:25 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/05 16:55:53 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,16 +14,16 @@
 #include "../include/Utils.hpp"
 
 /*
- * Constructor.
- * Inicializa el servidor con el puerto y la contraseña proporcionados.
- */
+* Constructor.
+* Inicializa el servidor con el puerto y la contraseña proporcionados.
+*/
 Server::Server(int port, std::string &password)
     : _port(port), _password(password) {}
 
 /*
- * Inicia el servidor.
- * Crea un socket y lo configura para que escuche en el puerto especificado.
- */
+* Inicia el servidor.
+* Crea un socket y lo configura para que escuche en el puerto especificado.
+*/
 void Server::run() 
 {
 	/*
@@ -40,6 +40,7 @@ void Server::run()
 		<< RESET << "\n";
 		return;
 	}
+	std::cout << GREEN << "OK: socket created (fd=" << serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 	
 	/*
 	* Configura el socket para que pueda ser reutilizado.
@@ -54,6 +55,7 @@ void Server::run()
     	::close(serverFd);
     	return;
 	}
+	std::cout << GREEN << "OK: SO_REUSEADDR enabled" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 
 	/*
 	* Configura el socket para que no bloquee.
@@ -66,10 +68,10 @@ void Server::run()
     	std::cerr << RED << "fcntl(O_NONBLOCK) failed: " << std::strerror(errno) << RESET << "\n";
     	::close(serverFd);
     	return;
-	}	
-	
-	std::cout << GREEN << "OK: SO_REUSEADDR enabled" << RESET << "\n";
-	std::cout << GREEN << "OK: server socket created for port " << _port << " (fd=" << serverFd << ")" << RESET << "\n";
+	}
+
+	std::cout << GREEN << "OK: socket set to non-blocking mode" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+	std::cout << GREEN << "OK: server socket created for port " << _port << " (fd=" << serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 
     ::close(serverFd);	// ! PROVISIONAL: solo valida socket()
 }

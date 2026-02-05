@@ -6,7 +6,7 @@
 /*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 09:13:18 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/05 16:36:22 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/05 16:57:07 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 	*/
 	if (argc != 3) 
 	{
-		std::cerr << RED << "Usage: ./ft_irc <port> <password>" << RESET << "\n";
+		std::cerr << RED << "ERROR: Usage -> ./ft_irc <port> <password>" << RESET << "\n";
 		return (1);
 	}
 
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 	{
 		if (!isdigit(argv[1][i])) 
 		{
-			std::cerr << RED << "<port> must contain only digits" << RESET << "\n";
+			std::cerr << RED << "<port> must contain only digits (0 to 65535)" << RESET << "\n";
 			return (1);
 		}
 	}
