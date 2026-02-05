@@ -6,10 +6,15 @@
 /*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 13:00:00 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/05 14:57:05 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/05 16:48:24 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+
+/*
+* Incluye todas las librerías necesarias para el servidor.
+* Incluye las definiciones de constantes y macros necesarias para el servidor.
+*/
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
