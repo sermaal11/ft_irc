@@ -1,7 +1,7 @@
 NAME = ft_irc
 CC = c++
 
-CFLAGS = -g3 -Wall -Wextra -Werror -std=c++98 -Iinclude
+CFLAGS = -g3 -Wall -Wextra -Werror -std=c++98
 
 SRC =	    src/main.cpp \
 
