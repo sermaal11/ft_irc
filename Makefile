@@ -4,6 +4,7 @@ CC = c++
 CFLAGS = -g3 -Wall -Wextra -Werror -std=c++98
 
 SRC =	    src/main.cpp \
+            src/Server.cpp \
 
 OBJS = $(notdir $(SRC:.cpp=.o))
 OBJDIR = irc_obj
