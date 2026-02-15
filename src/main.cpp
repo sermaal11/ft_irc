@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 	* Validación del puerto.
 	* El puerto debe ser un número entero entre 0 y 65535.
 	*/
-	for (int i = 0; argv[1][i]; i++) 
+	for (size_t i = 0; argv[1][i]; i++) 
 	{
 		if (!isdigit(argv[1][i])) 
 		{
