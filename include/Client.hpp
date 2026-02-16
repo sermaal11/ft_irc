@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/16 22:46:40 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 23:16:28 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,11 @@ class Client
 		void		setInputBuffer(const std::string inputBuffer);
 		std::string	getInputBuffer();
 		void		clearInputBuffer();
+
+
+		//Parsing
+		bool		hasAllCommand(); //busca \r\n
+		std::string	extractCommand(); //extrae el primer comando completo
 };
 
 #endif
