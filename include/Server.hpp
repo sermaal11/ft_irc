@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/05 17:00:32 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/16 18:46:41 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,8 @@ class Server
 	private:
 		int _port;
 		std::string _password;
+		int	_serverFd;
+		int	createServerSocket();
 	  
 	public:
     	Server(int port, std::string &password);

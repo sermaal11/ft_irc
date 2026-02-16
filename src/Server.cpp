@@ -3,28 +3,29 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/05 16:55:53 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/16 18:48:32 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
 #include "../include/Utils.hpp"
+#include <string>
 
 /*
 * Constructor.
 * Inicializa el servidor con el puerto y la contraseña proporcionados.
 */
 Server::Server(int port, std::string &password)
-    : _port(port), _password(password) {}
+    : _port(port), _password(password), _serverFd(-1) {}
 
 /*
 * Inicia el servidor.
 * Crea un socket y lo configura para que escuche en el puerto especificado.
 */
-void Server::run() 
+int	Server::createServerSocket() 
 {
 	/*
 	* Crea un socket y lo configura para que escuche en el puerto especificado.
@@ -71,7 +72,21 @@ void Server::run()
 	}
 
 	std::cout << GREEN << "OK: socket set to non-blocking mode" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
-	std::cout << GREEN << "OK: server socket created for port " << _port << " (fd=" << serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+	return serverFd;
+}
 
-    ::close(serverFd);	// ! PROVISIONAL: solo valida socket()
+
+/*
+* Inicia el servidor.
+* Crea un socket y lo configura para que escuche en el puerto especificado.
+*/
+void Server::run() 
+{
+    _serverFd = createServerSocket();
+    if (_serverFd < 0)
+        return;
+    
+    std::cout << GREEN << "OK: server socket created for port " << _port << " (fd=" << _serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+
+    ::close(_serverFd);	// ! PROVISIONAL: solo valida socket()
 }
