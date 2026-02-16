@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:48:43 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/16 23:18:52 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 23:53:10 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,17 +18,22 @@ bool Client::hasAllCommand()
     return _inputBuffer.find("\r\n") != std::string::npos;
 }
 
+void Client::addToBuffer(const std::string input)
+{
+    _inputBuffer += input;
+}
+
 std::string Client::extractCommand()
 {
     size_t pos = _inputBuffer.find("\r\n");
-    if (pos != std::string::npos)
+    if (pos == std::string::npos)
     {
         return "";
-	}
-	
-	std::string command = _inputBuffer.substr(0, pos);
-	_inputBuffer.erase(0, pos + 2);
-	return command;
+    }
+    
+    std::string command = _inputBuffer.substr(0, pos);
+    _inputBuffer.erase(0, pos + 2);
+    return command;
 }
 
 // Constructor: inicializa el cliente recién conectado
@@ -105,12 +110,18 @@ void Client::setIsAuthenticated(bool isAuthenticated)
 {
     _isAuthenticated = isAuthenticated;
 }
-
+/*
+* 
+*/
 void Client::setHasPassGiven(bool hasPassGiven)
 {
-    _hasPassGiven = hasPassGiven;	std::vector<std::string> _channels;  // Lista de canales en los que está
+    _hasPassGiven = hasPassGiven;
+	std::vector<std::string> _channels;  // Lista de canales en los que está
 }
 
+/*
+* Set nickname que da el usuario
+*/
 void Client::setHasNickGiven(bool hasNickGiven)
 {
     _hasNickGiven = hasNickGiven;
@@ -118,11 +129,18 @@ void Client::setHasNickGiven(bool hasNickGiven)
 
 // ========== BUFFER ==========
 
+/*
+* Set de buffer del usuario a variable privada
+*/
 void Client::setInputBuffer(const std::string inputBuffer)
 {
     _inputBuffer = inputBuffer;
 }
 
+
+/*
+* Limpia el buffer que introduce el usuario despues de procesarlo
+*/
 void Client::clearInputBuffer()
 {
     _inputBuffer.clear();
