@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 22:33:19 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 22:42:04 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,7 @@ class Server
 	public:
     	Server(int port, std::string &password);
     	void run();
+		~Server();
 };
 
 #endif
