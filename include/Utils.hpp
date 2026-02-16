@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 13:00:00 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 19:30:05 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 21:33:46 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 * Incluye las definiciones de constantes y macros necesarias para el servidor.
 */
 #ifndef UTILS_HPP
-#define UTILS_HPP
+# define UTILS_HPP
 
 #include <cctype>			// isdigit
 #include <cstdlib>			// std::atoi
@@ -30,7 +30,7 @@
 #include <fcntl.h>      	// fcntl, O_NONBLOCK
 #include <poll.h>      		// poll
 #include <netinet/in.h>		// sockaddr
-#include <vector>
+#include <vector>			// std::vector
 
 
 #define RED     "\033[1;31m"
