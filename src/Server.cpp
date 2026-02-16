@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 19:30:17 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 19:31:43 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ int	Server::createServerSocket()
 	{
 		std::cerr << RED << "socket() failed: " << std::strerror(errno)
 		<< RESET << "\n";
-		return;
+		return (-1);
 	}
 	std::cout << GREEN << "OK: socket created (fd=" << serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 	
@@ -54,7 +54,7 @@ int	Server::createServerSocket()
 	{
     	std::cerr << RED << "setsockopt(SO_REUSEADDR) failed: " << std::strerror(errno) << RESET << "\n";
     	::close(serverFd);
-    	return;
+    	return (-1);
 	}
 	std::cout << GREEN << "OK: SO_REUSEADDR enabled" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 
@@ -68,7 +68,7 @@ int	Server::createServerSocket()
 	{
     	std::cerr << RED << "fcntl(O_NONBLOCK) failed: " << std::strerror(errno) << RESET << "\n";
     	::close(serverFd);
-    	return;
+    	return (-1);
 	}
 
 	std::cout << GREEN << "OK: socket set to non-blocking mode" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
