@@ -6,14 +6,13 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 19:01:43 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 19:30:17 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
 #include "../include/Utils.hpp"
-#include <string>
-#include <netinet/in.h>
+
 
 /*
 * Constructor.
@@ -114,7 +113,73 @@ bool Server::bindAndListen()
 	std::cout << GREEN << "OK: socket listening" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 }
 
+/*
+* Acepta una nueva conexion de cliente.
+* Añade el nuevo socker al vector de poll
+*/
 
+void Server::acceptNewClient() 
+{
+	/*
+	* Acepta una nueva conexión de cliente.
+	* Retorna nuevo fd para comunicar con el cliente.
+	*/
+	int clientFd = ::accept(_serverFd, NULL, NULL);
+	if (clientFd < 0) 
+	{
+		std::cerr << RED << "accept() failed: " << std::strerror(errno) << RESET << "\n";
+		return;
+	}
+
+	/*
+	* Configurar el socker del cliente como no bloqueante
+	*/
+	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) 
+	{
+		std::cerr << RED << "fcntl(O_NONBLOCK) on client failed" << RESET << "\n";
+		::close(clientFd);
+		return;
+	}
+	
+	/*
+	* Añadir el cliente al vector de poll.
+	*/
+
+	pollfd clientPollFd;
+	clientPollFd.fd = clientFd;
+	clientPollFd.events = POLLIN;
+	clientPollFd.revents = 0;
+	_pollFds.push_back(clientPollFd);
+
+	std::cout << GREEN << "OK: new client connected (fd=" << clientFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+}
+
+/*
+* Maneja los datos recibidos de un cliente.
+* Por ahora solo lee y muestra los datos.
+*/
+void Server::handleClientData(int i) 
+{
+    char buffer[512];
+    int bytesRead = ::recv(_pollFds[i].fd, buffer, sizeof(buffer) - 1, 0);
+
+    // Cliente desconectado o error
+    if (bytesRead <= 0) 
+    {
+        if (bytesRead == 0)
+            std::cout << YELLOW << "Client disconnected (fd=" << _pollFds[i].fd << ")" << RESET << "\n";
+        else
+            std::cerr << RED << "recv() failed: " << std::strerror(errno) << RESET << "\n";
+
+        ::close(_pollFds[i].fd);
+        _pollFds.erase(_pollFds.begin() + i);
+        return;
+    }
+
+    // Mostrar datos recibidos
+    buffer[bytesRead] = '\0';
+    std::cout << CYAN << "Received from fd " << _pollFds[i].fd << ": " << buffer << RESET;
+}
 
 /*
 * Inicia el servidor.
@@ -134,5 +199,55 @@ void Server::run()
     
     std::cout << GREEN << "OK: server socket created for port " << _port << " (fd=" << _serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 
-    ::close(_serverFd);	// ! PROVISIONAL: solo valida socket()
-}
+
+	/*
+	* Añadir el socket del servidor al vector de poll
+	* POLLIN: monitorizar eventos de nuevas conexiones
+	*/
+	pollfd	serverPollFd;
+	serverPollFd.fd = _serverFd;
+	serverPollFd.events = POLLIN;
+	serverPollFd.revents = 0;
+	_pollFds.push_back(serverPollFd);
+	
+	/*
+	* Loop principal server
+	* poll() bloquea hasta ver actividad en algun fd
+	* -1: timeout infinito
+	*/
+
+	// ! revisar
+	while (true)
+	{
+		int pollCount = ::poll(&_pollFds[0], _pollFds.size(), -1);
+		if (pollCount < 0)
+		{
+			std::cerr << RED << "poll() failed: " << std::strerror(errno) << RESET << "\n";
+			break;
+		}
+		/*
+		* Recorrer todos los fds para ver cual ha tenido actividad
+		* Indice para no modificar el vector durante la iteracion 
+		*/
+
+		for (size_t i = 0; i < _pollFds.size(); i++)
+		{
+			// Verificamos si hay eventos en el fd del server
+			if (_pollFds[i].revents & POLLIN)
+			{
+				// Si es el socket del server, es una nueva conexion
+				if (_pollFds[i].fd == _serverFd)
+				{
+					acceptNewClient();
+				}
+				// Si no, es un cliente que envia datos.
+				else
+				{
+					handleClientData(_pollFds[i].fd);
+				}
+			}
+		}
+	}
+	::close(_serverFd);
+
+	}

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 13:00:00 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/05 17:01:26 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/16 19:30:05 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,10 @@
 #include <cerrno>			// errno
 #include <cstring>      	// strerror
 #include <fcntl.h>      	// fcntl, O_NONBLOCK
+#include <poll.h>      		// poll
+#include <netinet/in.h>		// sockaddr
+#include <vector>
+
 
 #define RED     "\033[1;31m"
 #define GREEN   "\033[1;32m"
@@ -35,5 +39,6 @@
 #define BLUE    "\033[1;34m"
 #define PURPLE  "\033[1;35m"
 #define RESET   "\033[0m"
+#define CYAN    "\033[1;36m"
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 18:52:39 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 19:28:51 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,9 +33,12 @@ class Server
 		int 		_port;
 		std::string _password;
 		int			_serverFd;
+		std::vector<pollfd> _pollFds; //Vector de fd para monitorizar con poll
 		
 		int			createServerSocket();
 		bool		bindAndListen();
+		void		acceptNewClient();
+		void		handleClientData(int clientFd);
 	  
 	public:
     	Server(int port, std::string &password);
