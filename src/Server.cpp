@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 19:31:43 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 19:33:07 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,6 +111,7 @@ bool Server::bindAndListen()
 		return false;
 	}
 	std::cout << GREEN << "OK: socket listening" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+	return true;
 }
 
 /*

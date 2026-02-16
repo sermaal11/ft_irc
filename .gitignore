@@ -1,0 +1,62 @@
+# Ejecutables
+ft_irc
+ircserv
+*.out
+*.exe
+
+# Archivos objeto y compilación
+*.o
+*.a
+*.so
+*.dylib
+*.d
+
+# Directorios de compilación
+obj/
+build/
+bin/
+
+# Archivos del sistema macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Archivos de depuración
+*.dSYM/
+*.su
+*.log
+
+# Editores e IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Valgrind
+vgcore.*
+*.valgrind
+
+# Core dumps
+core
+core.*
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+
+# Archivos de testing
+test
+tests/output/
+*.test
+
+# Archivos de configuración personal
+config.local
+
+# Dependencias externas (si usas alguna)
+external/
+libs/
