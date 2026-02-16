@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 19:37:23 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 19:39:27 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -159,7 +159,7 @@ void Server::acceptNewClient()
 * Maneja los datos recibidos de un cliente.
 * Por ahora solo lee y muestra los datos.
 */
-void Server::handleClientData(int clientFd) 
+void Server::handleClientData(int i) 
 {
     char buffer[512];
     int bytesRead = ::recv(_pollFds[i].fd, buffer, sizeof(buffer) - 1, 0);

@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 19:28:51 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 19:39:31 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ class Server
 		int			createServerSocket();
 		bool		bindAndListen();
 		void		acceptNewClient();
-		void		handleClientData(int clientFd);
+		void		handleClientData(int i);
 	  
 	public:
     	Server(int port, std::string &password);
