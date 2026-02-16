@@ -6,13 +6,14 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 18:48:32 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 19:01:43 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
 #include "../include/Utils.hpp"
 #include <string>
+#include <netinet/in.h>
 
 /*
 * Constructor.
@@ -75,6 +76,45 @@ int	Server::createServerSocket()
 	return serverFd;
 }
 
+/*
+* Asocia el socket a una dirección y lo pone en modo escucha.
+* Retorna true si tiene éxito, false si falla.
+*/
+bool Server::bindAndListen() 
+{
+	/*
+    * Asocia el socket a una dirección IP y puerto (bind).
+    * sockaddr_in: estructura que contiene la información de la dirección.
+    * sin_family: familia de direcciones (AF_INET para IPv4).
+    * sin_addr.s_addr: dirección IP (INADDR_ANY acepta conexiones de cualquier interfaz).
+    * sin_port: puerto en formato de red (htons convierte a big-endian).
+    */
+	struct sockaddr_in address;
+	std::memset(&address, 0, sizeof(address));
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = INADDR_ANY;
+	address.sin_port = htons(_port);
+
+	if (::bind(_serverFd, (struct sockaddr *)&address, sizeof(address)) < 0)
+	{
+		std::cerr << RED << "bind() failed: " << std::strerror(errno) << RESET << "\n";
+		return false;
+	}
+	std::cout << GREEN << "OK: socket bound to port " << _port << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+	
+	/*
+    * Pone el socket en modo escucha (listen).
+    * SOMAXCONN: número máximo de conexiones pendientes en la cola.
+    */
+	if (::listen(_serverFd, SOMAXCONN) < 0)
+	{
+		std::cerr << RED << "listen() failed: " << std::strerror(errno) << RESET << "\n";
+		return false;
+	}
+	std::cout << GREEN << "OK: socket listening" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+}
+
+
 
 /*
 * Inicia el servidor.
@@ -85,6 +125,12 @@ void Server::run()
     _serverFd = createServerSocket();
     if (_serverFd < 0)
         return;
+
+	if (!bindAndListen())
+	{
+		::close(_serverFd);
+		return;
+	}
     
     std::cout << GREEN << "OK: server socket created for port " << _port << " (fd=" << _serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 

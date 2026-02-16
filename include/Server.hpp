@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 18:46:41 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 18:52:39 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,10 +30,12 @@
 class Server 
 {
 	private:
-		int _port;
+		int 		_port;
 		std::string _password;
-		int	_serverFd;
-		int	createServerSocket();
+		int			_serverFd;
+		
+		int			createServerSocket();
+		bool		bindAndListen();
 	  
 	public:
     	Server(int port, std::string &password);
