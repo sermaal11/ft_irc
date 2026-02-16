@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 22:42:04 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/16 23:29:54 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 # define SERVER_HPP
 
 # include "Utils.hpp"
+# include "Client.hpp"
 
 /*
  * Clase Server.
@@ -34,11 +35,14 @@ class Server
 		std::string _password;
 		int			_serverFd;
 		std::vector<pollfd> _pollFds; //Vector de fd para monitorizar con poll
+		std::map<int, Client*> _clients;
 		
 		int			createServerSocket();
 		bool		bindAndListen();
 		void		acceptNewClient();
 		void		handleClientData(int i);
+		void		removeClient(int fd);
+		void		proccesCommand(Client* client, std::string command);
 	  
 	public:
     	Server(int port, std::string &password);
