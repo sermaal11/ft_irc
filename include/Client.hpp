@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/16 23:46:59 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 14:22:55 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,49 @@
 
 # include "Utils.hpp"
 
+/*
+ * Clase Client.
+ * Representa un cliente conectado al servidor IRC.
+ * 
+ * Miembros privados:
+ * - _clientFd: file descriptor del socket del cliente.
+ * - _nickname: apodo del cliente en el servidor.
+ * - _username: nombre de usuario del cliente.
+ * - _hostname: nombre del host del cliente.
+ * - _isAuthenticated: indica si el cliente está autenticado.
+ * - _hasPassGiven: indica si el cliente ha proporcionado la contraseña.
+ * - _hasNickGiven: indica si el cliente ha proporcionado un nickname.
+ * - _inputBuffer: buffer para almacenar datos recibidos del cliente.
+ * 
+ * Métodos públicos:
+ * - Client(int fd): constructor.
+ * - ~Client(): destructor.
+ * 
+ * Getters:
+ * - getClientFd(): obtiene el file descriptor del cliente.
+ * - getNickname(): obtiene el nickname del cliente.
+ * - getIsAuthenticated(): verifica si el cliente está autenticado.
+ * - getHasPassGiven(): verifica si se ha proporcionado la contraseña.
+ * - getHasNickGiven(): verifica si se ha proporcionado el nickname.
+ * 
+ * Setters:
+ * - setNickname(const std::string nickname): establece el nickname.
+ * - setUsername(const std::string username): establece el username.
+ * - setHostname(const std::string hostname): establece el hostname.
+ * - setIsAuthenticated(bool isAuthenticated): establece el estado de autenticación.
+ * - setHasPassGiven(bool hasPassGiven): establece si se ha dado la contraseña.
+ * - setHasNickGiven(bool hasNickGiven): establece si se ha dado el nickname.
+ * 
+ * Métodos de buffer:
+ * - setInputBuffer(const std::string inputBuffer): establece el buffer de entrada.
+ * - getInputBuffer(): obtiene el contenido del buffer de entrada.
+ * - clearInputBuffer(): limpia el buffer de entrada.
+ * 
+ * Métodos de parsing:
+ * - addToBuffer(const std::string input): añade datos al buffer de entrada.
+ * - hasAllCommand(): verifica si hay un comando completo (busca \r\n).
+ * - extractCommand(): extrae el primer comando completo del buffer.
+ */
 class Client 
 {
 	private:
