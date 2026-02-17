@@ -264,7 +264,7 @@ void Server::run()
 				// Si no, es un cliente que envia datos.
 				else
 				{
-					handleClientData(_pollFds[i].fd);
+					handleClientData(i);
 				}
 			}
 		}

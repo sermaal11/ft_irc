@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 13:00:00 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/17 14:22:24 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 15:44:22 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,7 @@
 #include <netinet/in.h>		// sockaddr
 #include <vector>			// std::vector
 #include <map>				// STL map
+#include <sstream>
 
 #define RED     "\033[1;31m"
 #define GREEN   "\033[1;32m"
