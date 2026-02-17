@@ -6,35 +6,13 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:48:43 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/16 23:53:10 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 14:13:26 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Client.hpp"
 
-//======PARSING========
-bool Client::hasAllCommand()
-{
-    return _inputBuffer.find("\r\n") != std::string::npos;
-}
 
-void Client::addToBuffer(const std::string input)
-{
-    _inputBuffer += input;
-}
-
-std::string Client::extractCommand()
-{
-    size_t pos = _inputBuffer.find("\r\n");
-    if (pos == std::string::npos)
-    {
-        return "";
-    }
-    
-    std::string command = _inputBuffer.substr(0, pos);
-    _inputBuffer.erase(0, pos + 2);
-    return command;
-}
 
 // Constructor: inicializa el cliente recién conectado
 Client::Client(int fd) 

@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/16 19:39:27 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 14:17:22 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,46 @@
 */
 Server::Server(int port, std::string &password)
     : _port(port), _password(password), _serverFd(-1) {}
+Server::~Server() {}
+
+/*
+* Elimina un cliente del servidor y libera sus recursos.
+* Esta función se llama cuando un cliente se desconecta (voluntariamente con QUIT
+* o por error de conexión detectado por recv()).
+* Proceso de limpieza:
+* 1. Busca el cliente en el mapa _clients usando su file descriptor
+*    - Si lo encuentra, libera la memoria del objeto Client (delete)
+*    - Elimina la entrada del mapa _clients
+* 2. Busca el file descriptor en el vector _pollFds
+*    - Recorre el vector hasta encontrar el fd correspondiente
+*    - Elimina la entrada del vector para que poll() no lo monitorice más
+*    - break: sale del bucle una vez encontrado (cada fd aparece una sola vez)
+* 3. Cierra el socket del cliente con close()
+* 4. Muestra mensaje de desconexión con el fd del cliente
+* Es fundamental realizar toda esta limpieza para evitar memory leaks y
+* que poll() no intente monitorizar sockets cerrados.
+*/
+void	Server::removeClient(int fd)
+{
+	//buscar cliente en el mapa
+	std::map<int, Client*>::iterator it = _clients.find(fd);
+	if (it != _clients.end())
+	{
+		delete it->second;
+		_clients.erase(it);
+	}
+	//buscar cliente en el vector de poll
+	for (size_t i = 0; i < _pollFds.size(); i++)
+	{
+		if (_pollFds[i].fd == fd)
+		{
+			_pollFds.erase(_pollFds.begin() + i);
+			break;
+		}
+	}
+	::close(fd);
+	std::cout << YELLOW << "Client disconnected (fd=" << fd << ")" << RESET << "\n";
+}
 
 /*
 * Inicia el servidor.
@@ -141,6 +181,9 @@ void Server::acceptNewClient()
 		::close(clientFd);
 		return;
 	}
+
+	Client* newClient = new Client(clientFd);
+	_clients[clientFd]= newClient;
 	
 	/*
 	* Añadir el cliente al vector de poll.
@@ -153,33 +196,6 @@ void Server::acceptNewClient()
 	_pollFds.push_back(clientPollFd);
 
 	std::cout << GREEN << "OK: new client connected (fd=" << clientFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
-}
-
-/*
-* Maneja los datos recibidos de un cliente.
-* Por ahora solo lee y muestra los datos.
-*/
-void Server::handleClientData(int i) 
-{
-    char buffer[512];
-    int bytesRead = ::recv(_pollFds[i].fd, buffer, sizeof(buffer) - 1, 0);
-
-    // Cliente desconectado o error
-    if (bytesRead <= 0) 
-    {
-        if (bytesRead == 0)
-            std::cout << YELLOW << "Client disconnected (fd=" << _pollFds[i].fd << ")" << RESET << "\n";
-        else
-            std::cerr << RED << "recv() failed: " << std::strerror(errno) << RESET << "\n";
-
-        ::close(_pollFds[i].fd);
-        _pollFds.erase(_pollFds.begin() + i);
-        return;
-    }
-
-    // Mostrar datos recibidos
-    buffer[bytesRead] = '\0';
-    std::cout << CYAN << "Received from fd " << _pollFds[i].fd << ": " << buffer << RESET;
 }
 
 /*
@@ -251,4 +267,4 @@ void Server::run()
 	}
 	::close(_serverFd);
 
-	}
+}
