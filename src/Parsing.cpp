@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:10:39 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/17 15:33:11 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 15:44:16 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,19 +172,29 @@ void Server::handleClientData(int i)
     buffer[bytesRead] = '\0';
     std::cout << CYAN << "Received from fd " << _pollFds[i].fd << ": " << buffer << RESET;
 	client->addToBuffer(buffer);
-    client->addToBuffer(buffer);
     while (client->hasAllCommand())
     {
-        // Extrae LÍNEA COMPLETA
-        std::string line = client->extractCommand();  // "NICK sergio"
-        client->addToBuffer(line);  // Volver a meter en buffer
+        // Extrae LÍNEA COMPLETA (sin \r\n)
+        std::string line = client->extractCommand();  // "PASS mypassword"
+        std::cout << CYAN << "Command line from fd=" << clientFd << ": " << line << RESET << "\n";
         
-        // Extrae TOKEN por TOKEN
-        std::string command = client->extractToken();  // "NICK"
-        std::cout << CYAN << "Command from fd=" << clientFd << ": " << command << RESET;
+        // Crear buffer temporal con la línea para parsearla
+        std::istringstream iss(line);
+        std::string command;
+        iss >> command;  // Extraer primer token "PASS"
+        
+        std::cout << CYAN << "Command: " << command << RESET << "\n";
+        
+        // Añadir resto de la línea al buffer del cliente para que extractToken lo use
+        std::string rest;
+        if (std::getline(iss, rest))
+        {
+            if (!rest.empty() && rest[0] == ' ')
+                rest.erase(0, 1);  // Quitar espacio inicial
+            client->addToBuffer(rest + "\r\n");
+        }
+        
         proccesCommand(client, command);
-        
-        // Limpiar el resto de la línea del buffer si quedó algo
         client->clearInputBuffer();
     }
 }
