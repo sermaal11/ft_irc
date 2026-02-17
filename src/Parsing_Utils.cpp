@@ -16,14 +16,14 @@
 
 /*
 * Verifica si el buffer del cliente contiene un comando completo.
-* Un comando IRC está completo cuando termina con la secuencia \r\n (CRLF).
+* Un comando IRC está completo cuando termina con la secuencia \r\n (CRLF) o \n (LF).
 * Retorna true si hay al menos un comando completo en el buffer, false en caso contrario.
 * Esta función es fundamental para determinar si podemos procesar un comando o
 * si debemos esperar más datos del cliente.
 */
 bool Client::hasAllCommand()
 {
-    return _inputBuffer.find("\r\n") != std::string::npos;
+    return _inputBuffer.find("\n") != std::string::npos;
 }
 
 /*
@@ -40,26 +40,36 @@ void Client::addToBuffer(const std::string input)
 
 /*
 * Extrae y retorna el primer comando completo del buffer del cliente.
-* Busca la primera aparición de \r\n (CRLF) que marca el final de un comando IRC.
+* Busca la primera aparición de \n (LF) que marca el final de un comando.
+* Acepta tanto \r\n (CRLF) como \n (LF) para compatibilidad con diferentes clientes.
 * Pasos:
-* 1. Busca la posición de \r\n en el buffer
-* 2. Si no encuentra \r\n, retorna string vacío (comando incompleto)
-* 3. Si encuentra \r\n:
-*    - Extrae el texto desde el inicio hasta \r\n (sin incluir \r\n)
-*    - Elimina del buffer el comando extraído + los 2 caracteres \r\n
+* 1. Busca la posición de \n en el buffer
+* 2. Si no encuentra \n, retorna string vacío (comando incompleto)
+* 3. Si encuentra \n:
+*    - Extrae el texto desde el inicio hasta \n (sin incluir \n ni \r si existe)
+*    - Elimina del buffer el comando extraído + el terminador
 *    - Retorna el comando extraído
 * Esto permite procesar múltiples comandos que lleguen juntos en el buffer.
 */
 std::string Client::extractCommand()
 {
-    size_t pos = _inputBuffer.find("\r\n");
+    size_t pos = _inputBuffer.find("\n");
     if (pos == std::string::npos)
     {
         return "";
     }
     
+    // Extraer el comando (sin incluir \n)
     std::string command = _inputBuffer.substr(0, pos);
-    _inputBuffer.erase(0, pos + 2);
+    
+    // Quitar \r final si existe (para manejar \r\n)
+    if (!command.empty() && command[command.length() - 1] == '\r')
+    {
+        command.erase(command.length() - 1);
+    }
+    
+    // Eliminar del buffer el comando + \n
+    _inputBuffer.erase(0, pos + 1);
     return command;
 }
 

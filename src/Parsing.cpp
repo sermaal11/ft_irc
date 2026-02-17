@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:10:39 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/17 15:44:16 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 16:07:10 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -176,25 +176,31 @@ void Server::handleClientData(int i)
     {
         // Extrae LÍNEA COMPLETA (sin \r\n)
         std::string line = client->extractCommand();  // "PASS mypassword"
-        std::cout << CYAN << "Command line from fd=" << clientFd << ": " << line << RESET << "\n";
+        std::cout << CYAN << "Command line from fd=" << clientFd << ": [" << line << "]" << RESET << "\n";
         
-        // Crear buffer temporal con la línea para parsearla
+        // Parsear la línea con istringstream
         std::istringstream iss(line);
         std::string command;
         iss >> command;  // Extraer primer token "PASS"
         
-        std::cout << CYAN << "Command: " << command << RESET << "\n";
+        std::cout << CYAN << "Command detected: [" << command << "]" << RESET << "\n";
         
-        // Añadir resto de la línea al buffer del cliente para que extractToken lo use
-        std::string rest;
-        if (std::getline(iss, rest))
+        // Extraer parámetros restantes y meterlos en el buffer temporal
+        std::string params;
+        if (std::getline(iss, params))
         {
-            if (!rest.empty() && rest[0] == ' ')
-                rest.erase(0, 1);  // Quitar espacio inicial
-            client->addToBuffer(rest + "\r\n");
+            // Quitar espacio inicial si existe
+            if (!params.empty() && params[0] == ' ')
+                params.erase(0, 1);
+            // Añadir al buffer del cliente con \r\n para que extractToken funcione
+            client->setInputBuffer(params + "\r\n");
+        }
+        else
+        {
+            // No hay parámetros, buffer vacío
+            client->clearInputBuffer();
         }
         
         proccesCommand(client, command);
-        client->clearInputBuffer();
     }
 }
