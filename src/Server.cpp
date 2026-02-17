@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/17 14:17:22 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 15:15:26 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -181,14 +181,15 @@ void Server::acceptNewClient()
 		::close(clientFd);
 		return;
 	}
-
+	/*
+	* Crear nuevo objeto cliente y ponerlo en el map clave->valor
+	*/
 	Client* newClient = new Client(clientFd);
 	_clients[clientFd]= newClient;
 	
 	/*
 	* Añadir el cliente al vector de poll.
 	*/
-
 	pollfd clientPollFd;
 	clientPollFd.fd = clientFd;
 	clientPollFd.events = POLLIN;
@@ -220,6 +221,8 @@ void Server::run()
 	/*
 	* Añadir el socket del servidor al vector de poll
 	* POLLIN: monitorizar eventos de nuevas conexiones
+	* revents: Eventos que ya ocurrieron
+	* push_back: añadimos fs del servidor al vector primero
 	*/
 	pollfd	serverPollFd;
 	serverPollFd.fd = _serverFd;
@@ -228,7 +231,7 @@ void Server::run()
 	_pollFds.push_back(serverPollFd);
 	
 	/*
-	* Loop principal server
+	* LOOP PRINCIPAL DEL SERVER
 	* poll() bloquea hasta ver actividad en algun fd
 	* -1: timeout infinito
 	*/
@@ -236,6 +239,7 @@ void Server::run()
 	// ! revisar
 	while (true)
 	{
+		// poll( 1. Puntero -> array de fds, 2. Tamañon del array, 3. Segundos: -1: Tiempo de espera indefinido.)
 		int pollCount = ::poll(&_pollFds[0], _pollFds.size(), -1);
 		if (pollCount < 0)
 		{
@@ -266,5 +270,4 @@ void Server::run()
 		}
 	}
 	::close(_serverFd);
-
 }

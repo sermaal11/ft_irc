@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:10:39 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/17 14:16:20 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 15:33:11 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 	*/
 	if (command == "NICK")
 	{
-		std::string nickname = client->extractCommand();
+		std::string nickname = client->extractToken();
 		client->setNickname(nickname);
 		client->setHasNickGiven(true);
 		std::cout << GREEN << "OK: NICK command found" << nickname << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
@@ -56,7 +56,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 	*/
 	else if (command == "USER")
 	{
-		std::string username = client->extractCommand();
+		std::string username = client->extractToken();
 		client->setUsername(username);
 		client->setHasPassGiven(true);
 		std::cout << GREEN << "OK: USER command found" << username << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
@@ -74,7 +74,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 	*/
 	else if (command == "PASS")
 	{
-		std::string password = client->extractCommand();
+		std::string password = client->extractToken();
 		std::cout << GREEN << "OK: Password command found" <<  password  << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 		if (password == _password)
 		{
@@ -110,7 +110,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 	*/
 	else if (command == "PING")
 	{
-		std::string pong = client->extractCommand();
+		std::string pong = client->extractToken();
 		if (pong == "PING")
 		{
 			std::string pong = "PONG";	
@@ -131,8 +131,8 @@ void	Server::proccesCommand(Client* client, std::string command)
 	*/
 	else if (command == "PRIVMSG")
 	{
-		std::string target = client->extractCommand();
-		std::string message = client->extractCommand();
+		std::string target = client->extractToken();
+		std::string message = client->extractToken();
 	}
 }
 
@@ -172,10 +172,19 @@ void Server::handleClientData(int i)
     buffer[bytesRead] = '\0';
     std::cout << CYAN << "Received from fd " << _pollFds[i].fd << ": " << buffer << RESET;
 	client->addToBuffer(buffer);
-	while (client->hasAllCommand())
-	{
-		std::string command = client->extractCommand();
-		std::cout << CYAN << "Command from fd=" << clientFd << ": " << command << RESET;
-		proccesCommand(client, command);
-	}
+    client->addToBuffer(buffer);
+    while (client->hasAllCommand())
+    {
+        // Extrae LÍNEA COMPLETA
+        std::string line = client->extractCommand();  // "NICK sergio"
+        client->addToBuffer(line);  // Volver a meter en buffer
+        
+        // Extrae TOKEN por TOKEN
+        std::string command = client->extractToken();  // "NICK"
+        std::cout << CYAN << "Command from fd=" << clientFd << ": " << command << RESET;
+        proccesCommand(client, command);
+        
+        // Limpiar el resto de la línea del buffer si quedó algo
+        client->clearInputBuffer();
+    }
 }

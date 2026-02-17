@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:13:14 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/17 14:14:44 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 15:25:10 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,4 +61,36 @@ std::string Client::extractCommand()
     std::string command = _inputBuffer.substr(0, pos);
     _inputBuffer.erase(0, pos + 2);
     return command;
+}
+
+
+/*
+* Extrae y retorna el primer token (palabra) del buffer del cliente.
+* Un token es una palabra delimitada por espacios o \r\n.
+* Pasos:
+* 1. Busca el primer espacio o \r\n en el buffer
+* 2. Si no encuentra ninguno, retorna string vacío
+* 3. Si encuentra delimitador:
+*    - Extrae el texto desde el inicio hasta el delimitador
+*    - Elimina del buffer el token extraído + el delimitador
+*    - Retorna el token extraído
+* Esta función se usa para parsear los parámetros individuales de un comando.
+* Ejemplo: "NICK sergio" → extractToken() devuelve "NICK", luego "sergio"
+*/
+std::string Client::extractToken()
+{
+    size_t spacePos = _inputBuffer.find(' ');
+    size_t crlfPos = _inputBuffer.find("\r\n");
+    size_t pos = std::min(spacePos, crlfPos);
+    
+    if (pos == std::string::npos)
+    {
+        std::string token = _inputBuffer;
+        _inputBuffer.clear();
+        return token;
+    }
+    
+    std::string token = _inputBuffer.substr(0, pos);
+    _inputBuffer.erase(0, pos + 1);  // +1 para saltar el espacio
+    return token;
 }

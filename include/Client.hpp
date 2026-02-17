@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/17 14:22:55 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/17 15:34:04 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,7 +97,8 @@ class Client
 		//Parsing
 		void		addToBuffer(const std::string input);
 		bool		hasAllCommand(); //busca \r\n
-		std::string	extractCommand(); //extrae el primer comando completo
+		std::string	extractCommand(); //extrae todo el mensaje a buffer
+		std::string extractToken(); // extraer un token del mensaje
 };
 
 #endif
