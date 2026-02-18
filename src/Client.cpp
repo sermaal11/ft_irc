@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:48:43 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/17 14:24:29 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 15:42:03 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,11 @@ Client::~Client()
 }
 
 // ========== GETTERS ==========
+
+bool	Client::getHasUserGiven() const
+{
+	return _hasUserGiven;
+}
 
 // Obtiene el file descriptor del cliente
 int Client::getClientFd() const

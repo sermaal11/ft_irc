@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/17 14:22:09 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 15:33:48 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,8 @@ class Server
 		void		removeClient(int fd);
 		void		proccesCommand(Client* client, std::string command);
 	  
+		//autetificacion del usuario
+		void	checkClientRegister(Client *client);
 	public:
     	Server(int port, std::string &password);
     	void run();

@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/17 15:15:26 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 15:38:55 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,24 @@
 Server::Server(int port, std::string &password)
     : _port(port), _password(password), _serverFd(-1) {}
 Server::~Server() {}
+
+/*
+* Verifica si el cliente ha completado el registro.
+* Un cliente está registrado cuando:
+* 1. Ha enviado la contraseña correcta (isAuthenticated = true)
+* 2. Ha establecido un nickname (hasNickGiven = true)
+* 3. Ha enviado el comando USER (hasPassGiven = true
+* 
+* Si el cliente acaba de completar el registro, se le envía el mensaje de bienvenida.
+*/
+void Server::checkClientRegister(Client *client)
+{
+	if (client->getIsAuthenticated() && client->getHasNickGiven() && client->getHasUserGiven())
+	{
+		sendWelcomeMessage(client);
+	}
+}
+
 
 /*
 * Elimina un cliente del servidor y libera sus recursos.

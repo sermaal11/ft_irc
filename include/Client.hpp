@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/17 15:34:04 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 15:41:15 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,11 +79,14 @@ class Client
 		bool		getIsAuthenticated() const;
 		bool		getHasPassGiven() const;
 		bool		getHasNickGiven() const;
+		bool		getHasUserGiven() const;
 		
 		//Setters
 		void		setNickname(const std::string nickname);
 		void		setUsername(const std::string username);
 		void		setHostname(const std::string hostname);
+
+		//Setters Autentificación
 		void		setIsAuthenticated(bool isAuthenticated);
 		void		setHasPassGiven(bool hasPassGiven);
 		void		setHasNickGiven(bool hasNickGiven);
