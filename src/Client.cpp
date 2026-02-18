@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:48:43 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/18 16:02:55 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:19:31 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -127,4 +127,10 @@ void Client::setInputBuffer(const std::string inputBuffer)
 void Client::clearInputBuffer()
 {
     _inputBuffer.clear();
+}
+
+// Marca si el cliente ha enviado el comando USER
+void Client::setHasUserGiven(const bool hasUserGiven)
+{
+    _hasUserGiven = hasUserGiven;
 }

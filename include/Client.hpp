@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/18 16:02:31 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:19:14 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,6 +83,7 @@ class Client
 		bool		getHasUserGiven() const;
 		
 		//Setters
+		void		setHasUserGiven(const bool hasUserGiven);
 		void		setNickname(const std::string nickname);
 		void		setUsername(const std::string username);
 		void		setHostname(const std::string hostname);
