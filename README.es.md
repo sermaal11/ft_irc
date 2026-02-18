@@ -143,11 +143,26 @@ graph TD
     L --> M{Client::hasAllCommand}
 
     M -- Sí --> N[Client::extractCommand]
-    N --> O[Server::proccesCommand]
-    O -->|Procesar Comando| P[Actualizar Estado / Acción]
-    O -->|Bucle| M
+    N -->|Línea completa| O[Parsear: CMD + Param]
+    O -->|Guardar Param| P[Client::setInputBuffer]
+    P --> Q[Server::proccesCommand]
 
-    M -- No (Comando Incompleto) --> F
+    Q -->|Extraer Param| R[Client::extractToken]
+    Q --> S{Router de Comandos}
+
+    S -- PASS --> T[Verificar Password]
+    S -- NICK --> U[Set Nickname]
+    S -- USER --> V[Set Username]
+    S -- PING --> W[Responder PONG]
+    S -- QUIT --> K
+
+    S --> X[Server::checkClientRegister]
+    X -- Si completado --> Y[Server::sendWelcomeMessage]
+
+    Q --> Z[Client::clearInputBuffer]
+    Z -->|Bucle| M
+
+    M -- No (Incompleto) --> F
     end
 ```
 
