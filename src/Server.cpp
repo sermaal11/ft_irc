@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/18 15:38:55 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 15:51:22 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,15 @@
 Server::Server(int port, std::string &password)
     : _port(port), _password(password), _serverFd(-1) {}
 Server::~Server() {}
+
+
+//Mensaje de bienvenido cuando un usario se conecta al server
+void	Server::sendWelcomeMessage(Client *client)
+{
+	std::string wellmessage = ":server 001 " + client->getNickname() + " :Welcome to the server!\r\n";
+	::send(client->getClientFd(), wellmessage.c_str(), wellmessage.length(), 0)
+	std::cout << GREEN << "Welcome message sent to " << client->getNickname() << RESET << RED << "(DEBUG)" << RESET << "\n";
+}
 
 /*
 * Verifica si el cliente ha completado el registro.

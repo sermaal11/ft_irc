@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/18 15:33:48 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 15:44:37 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,8 @@ class Server
 	  
 		//autetificacion del usuario
 		void	checkClientRegister(Client *client);
+		void	sendWelcomeMessage(Client *client);
+
 	public:
     	Server(int port, std::string &password);
     	void run();
