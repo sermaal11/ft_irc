@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:48:43 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/18 15:42:03 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:02:18 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ Client::Client(int fd)
       _hasPassGiven(false),    // NO ha dado password
       _hasNickGiven(false),    // NO tiene nickname
       _inputBuffer("")         // Buffer vacío
+	  _hasUserGiven(false)
 {
     std::cout << "Client connected with fd: " << fd << std::endl;
 }

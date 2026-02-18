@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/18 15:41:15 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:02:31 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,6 +69,7 @@ class Client
 		bool		_hasPassGiven;
 		bool		_hasNickGiven;
 		std::string _inputBuffer;
+		bool		_hasUserGiven;
 	public:
 		Client(int fd);
 		~Client();
