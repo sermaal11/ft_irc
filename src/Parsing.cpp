@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:10:39 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/17 16:07:10 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:00:50 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,8 @@ void	Server::proccesCommand(Client* client, std::string command)
 		client->setNickname(nickname);
 		client->setHasNickGiven(true);
 		std::cout << GREEN << "OK: NICK command found" << nickname << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+		checkClientRegister(client);
+
 	}
 	/*
 	* Comando USER: establece la información del usuario.
@@ -60,6 +62,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 		client->setUsername(username);
 		client->setHasPassGiven(true);
 		std::cout << GREEN << "OK: USER command found" << username << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+		checkClientRegister(client);
 	}
 	/*
 	* Comando PASS: autentica al cliente con la contraseña del servidor.
@@ -79,6 +82,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 		if (password == _password)
 		{
 			client->setIsAuthenticated(true);
+			checkClientRegister(client);
 		}
 	}
 	/*

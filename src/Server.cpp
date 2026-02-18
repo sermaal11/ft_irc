@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/18 15:51:22 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:01:34 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ Server::~Server() {}
 void	Server::sendWelcomeMessage(Client *client)
 {
 	std::string wellmessage = ":server 001 " + client->getNickname() + " :Welcome to the server!\r\n";
-	::send(client->getClientFd(), wellmessage.c_str(), wellmessage.length(), 0)
+	::send(client->getClientFd(), wellmessage.c_str(), wellmessage.length(), 0);
 	std::cout << GREEN << "Welcome message sent to " << client->getNickname() << RESET << RED << "(DEBUG)" << RESET << "\n";
 }
 
