@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/18 16:19:14 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:39:11 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,94 +16,109 @@
 # include "Utils.hpp"
 
 /*
- * Clase Client.
+ * ============================================================================
+ * Clase Client
+ * ============================================================================
  * Representa un cliente conectado al servidor IRC.
+ * Gestiona la información del cliente, su estado de autenticación/registro,
+ * y el buffer de comandos recibidos.
  * 
- * Miembros privados:
- * - _clientFd: file descriptor del socket del cliente.
- * - _nickname: apodo del cliente en el servidor.
- * - _username: nombre de usuario del cliente.
- * - _hostname: nombre del host del cliente.
- * - _isAuthenticated: indica si el cliente está autenticado.
- * - _hasPassGiven: indica si el cliente ha proporcionado la contraseña.
- * - _hasNickGiven: indica si el cliente ha proporcionado un nickname.
- * - _inputBuffer: buffer para almacenar datos recibidos del cliente.
+ * ============================================================================
+ * ATRIBUTOS PRIVADOS:
+ * ============================================================================
  * 
- * Métodos públicos:
- * - Client(int fd): constructor.
- * - ~Client(): destructor.
+ * === Conexión ===
+ * _clientFd        : File descriptor del socket del cliente
  * 
- * Getters:
- * - getClientFd(): obtiene el file descriptor del cliente.
- * - getNickname(): obtiene el nickname del cliente.
- * - getIsAuthenticated(): verifica si el cliente está autenticado.
- * - getHasPassGiven(): verifica si se ha proporcionado la contraseña.
- * - getHasNickGiven(): verifica si se ha proporcionado el nickname.
+ * === Información del cliente ===
+ * _nickname        : Apodo del cliente en el servidor (ej: "sergio")
+ * _username        : Nombre de usuario del sistema (ej: "sergio")
  * 
- * Setters:
- * - setNickname(const std::string nickname): establece el nickname.
- * - setUsername(const std::string username): establece el username.
- * - setHostname(const std::string hostname): establece el hostname.
- * - setIsAuthenticated(bool isAuthenticated): establece el estado de autenticación.
- * - setHasPassGiven(bool hasPassGiven): establece si se ha dado la contraseña.
- * - setHasNickGiven(bool hasNickGiven): establece si se ha dado el nickname.
+ * === Estado de registro (para checkClientRegister) ===
+ * _isAuthenticated : true si la contraseña (PASS) fue correcta
+ * _hasNickGiven    : true si el cliente envió el comando NICK
+ * _hasUserGiven    : true si el cliente envió el comando USER
  * 
- * Métodos de buffer:
- * - setInputBuffer(const std::string inputBuffer): establece el buffer de entrada.
- * - getInputBuffer(): obtiene el contenido del buffer de entrada.
- * - clearInputBuffer(): limpia el buffer de entrada.
+ * === Buffer de entrada ===
+ * _inputBuffer     : Almacena datos recibidos hasta formar comandos completos
+ *                    Los comandos IRC terminan en \r\n (CRLF)
  * 
- * Métodos de parsing:
- * - addToBuffer(const std::string input): añade datos al buffer de entrada.
- * - hasAllCommand(): verifica si hay un comando completo (busca \r\n).
- * - extractCommand(): extrae el primer comando completo del buffer.
+ * ============================================================================
+ * MÉTODOS PÚBLICOS:
+ * ============================================================================
  */
 class Client 
 {
-	private:
-		int 		_clientFd;
-		std::string	_nickname;
-		std::string _username;
-		std::string _hostname;
-		bool		_isAuthenticated;
-		bool		_hasPassGiven;
-		bool		_hasNickGiven;
-		std::string _inputBuffer;
-		bool		_hasUserGiven;
-	public:
-		Client(int fd);
-		~Client();
+private:
+	// === CONEXIÓN ===
+	int         _clientFd;
+	
+	// === INFORMACIÓN DEL CLIENTE ===
+	std::string _nickname;
+	std::string _username;
+	
+	// === ESTADO DE REGISTRO ===
+	bool        _isAuthenticated;  // PASS enviado correctamente
+	bool        _hasNickGiven;     // NICK enviado
+	bool        _hasUserGiven;     // USER enviado
+	
+	// === BUFFER DE ENTRADA ===
+	std::string _inputBuffer;
 
-		//Getters
-		int			getClientFd() const;
-		std::string	getNickname() const;
-		bool		getIsAuthenticated() const;
-		bool		getHasPassGiven() const;
-		bool		getHasNickGiven() const;
-		bool		getHasUserGiven() const;
-		
-		//Setters
-		void		setHasUserGiven(const bool hasUserGiven);
-		void		setNickname(const std::string nickname);
-		void		setUsername(const std::string username);
-		void		setHostname(const std::string hostname);
+public:
+	// ========================================================================
+	// CONSTRUCTOR Y DESTRUCTOR
+	// ========================================================================
+	Client(int fd);
+	~Client();
 
-		//Setters Autentificación
-		void		setIsAuthenticated(bool isAuthenticated);
-		void		setHasPassGiven(bool hasPassGiven);
-		void		setHasNickGiven(bool hasNickGiven);
-		
-		//Buffer
-		void		setInputBuffer(const std::string inputBuffer);
-		std::string	getInputBuffer();
-		void		clearInputBuffer();
+	// ========================================================================
+	// GETTERS - Información del cliente
+	// ========================================================================
+	int         getClientFd() const;        // Retorna el file descriptor
+	std::string getNickname() const;        // Retorna el nickname del cliente
+	
+	// ========================================================================
+	// GETTERS - Estado de registro
+	// ========================================================================
+	bool getIsAuthenticated() const;  // ¿Ha enviado PASS correctamente?
+	bool getHasNickGiven() const;     // ¿Ha enviado NICK?
+	bool getHasUserGiven() const;     // ¿Ha enviado USER?
+	
+	// ========================================================================
+	// SETTERS - Información del cliente
+	// ========================================================================
+	void setNickname(const std::string nickname);  // Establece el nickname (comando NICK)
+	void setUsername(const std::string username);  // Establece el username (comando USER)
 
+	// ========================================================================
+	// SETTERS - Estado de registro
+	// ========================================================================
+	void setIsAuthenticated(bool isAuthenticated);  // Marca autenticación (PASS correcto)
+	void setHasNickGiven(bool hasNickGiven);        // Marca que envió NICK
+	void setHasUserGiven(bool hasUserGiven);        // Marca que envió USER
+	
+	// ========================================================================
+	// GESTIÓN DE BUFFER - Manipulación directa
+	// ========================================================================
+	void        setInputBuffer(const std::string inputBuffer);  // Establece contenido del buffer
+	void        clearInputBuffer();                             // Limpia el buffer completamente
 
-		//Parsing
-		void		addToBuffer(const std::string input);
-		bool		hasAllCommand(); //busca \r\n
-		std::string	extractCommand(); //extrae todo el mensaje a buffer
-		std::string extractToken(); // extraer un token del mensaje
+	// ========================================================================
+	// PARSING - Procesamiento de comandos IRC
+	// ========================================================================
+	
+	// Añade datos recibidos al buffer (pueden llegar fragmentados)
+	void addToBuffer(const std::string input);
+	
+	// Verifica si hay al menos un comando completo en el buffer (busca \r\n)
+	bool hasAllCommand();
+	
+	// Extrae una línea completa del buffer (hasta \r\n, sin incluirlo)
+	std::string extractCommand();
+	
+	// Extrae un token (palabra) del buffer (delimitado por espacio o \r\n)
+	std::string extractToken();
 };
 
 #endif
