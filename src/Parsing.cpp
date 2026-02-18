@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:10:39 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/18 16:32:01 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:41:41 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 		std::string nickname = client->extractToken();
 		client->setNickname(nickname);
 		client->setHasNickGiven(true);
-		std::cout << GREEN << "OK: NICK command found" << nickname << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+		std::cout << GREEN << "OK: NICK command found (" << nickname << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 		checkClientRegister(client);
 
 	}
@@ -61,7 +61,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 		std::string username = client->extractToken();
 		client->setUsername(username);
 		client->setHasUserGiven(true);
-		std::cout << GREEN << "OK: USER command found" << username << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+		std::cout << GREEN << "OK: USER command found " << username << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 		checkClientRegister(client);
 	}
 	/*
