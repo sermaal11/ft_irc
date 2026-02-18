@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:10:39 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/18 16:00:50 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/18 16:32:01 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,7 @@ void	Server::proccesCommand(Client* client, std::string command)
 	{
 		std::string username = client->extractToken();
 		client->setUsername(username);
-		client->setHasPassGiven(true);
+		client->setHasUserGiven(true);
 		std::cout << GREEN << "OK: USER command found" << username << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
 		checkClientRegister(client);
 	}
@@ -179,32 +179,42 @@ void Server::handleClientData(int i)
     while (client->hasAllCommand())
     {
         // Extrae LÍNEA COMPLETA (sin \r\n)
-        std::string line = client->extractCommand();  // "PASS mypassword"
+        std::string line = client->extractCommand();  // "USER sergio 0 * :Sergio Real Name"
+        
+        // Ignorar líneas vacías
+        if (line.empty())
+            continue;
+        
         std::cout << CYAN << "Command line from fd=" << clientFd << ": [" << line << "]" << RESET << "\n";
         
         // Parsear la línea con istringstream
         std::istringstream iss(line);
         std::string command;
-        iss >> command;  // Extraer primer token "PASS"
+        iss >> command;  // Extraer primer token "USER"
+        
+        // Ignorar si no hay comando
+        if (command.empty())
+            continue;
         
         std::cout << CYAN << "Command detected: [" << command << "]" << RESET << "\n";
         
-        // Extraer parámetros restantes y meterlos en el buffer temporal
-        std::string params;
-        if (std::getline(iss, params))
+        // Extraer SOLO el primer parámetro y ponerlo en el buffer
+        std::string param;
+        iss >> param;  // Extraer solo "sergio"
+        
+        // Poner SOLO el primer parámetro en el buffer temporal
+        if (!param.empty())
         {
-            // Quitar espacio inicial si existe
-            if (!params.empty() && params[0] == ' ')
-                params.erase(0, 1);
-            // Añadir al buffer del cliente con \r\n para que extractToken funcione
-            client->setInputBuffer(params + "\r\n");
+            client->setInputBuffer(param + "\r\n");
         }
         else
         {
-            // No hay parámetros, buffer vacío
             client->clearInputBuffer();
         }
         
         proccesCommand(client, command);
+        
+        // Limpiar el buffer después de procesar
+        client->clearInputBuffer();
     }
 }
