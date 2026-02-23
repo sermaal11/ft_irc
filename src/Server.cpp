@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/23 10:38:02 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/23 23:29:25 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
  * Inicializa el servidor con el puerto y la contraseña proporcionados.
  */
 Server::Server(int port, std::string &password)
-    : _port(port), _password(password), _serverFd(-1) {}
+    : _port(port), _password(password), _serverName("ircserv"), _serverFd(-1) {}
 Server::~Server() {
   // Liberar todos los clientes
   std::map<int, Client *>::iterator cit;
@@ -44,7 +44,7 @@ Server::~Server() {
 // Mensaje de bienvenido cuando un usario se conecta al server
 void Server::sendWelcomeMessage(Client *client) {
   std::string wellmessage =
-      ":server 001 " + client->getNickname() + " :Welcome to the server!\r\n";
+      ":" + _serverName + " 001 " + client->getNickname() + " :Welcome to the server!\r\n";
   ::send(client->getClientFd(), wellmessage.c_str(), wellmessage.length(), 0);
   std::cout << GREEN << "Welcome message sent to " << client->getNickname()
             << RESET << RED << "(DEBUG)" << RESET << "\n";
@@ -152,7 +152,7 @@ void Server::handleJoin(Client *client) {
 
   // Verificar que se proporcionó un nombre de canal
   if (channelName.empty()) {
-    std::string err = ":server 461 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 461 " + client->getNickname() +
                       " JOIN :Not enough parameters\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -160,7 +160,7 @@ void Server::handleJoin(Client *client) {
 
   // Verificar que el nombre del canal empiece con '#'
   if (channelName[0] != '#') {
-    std::string err = ":server 403 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 403 " + client->getNickname() + " " +
                       channelName + " :No such channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -185,7 +185,7 @@ void Server::handleJoin(Client *client) {
   // Modo +i: invite-only - verificar si está invitado
   if (!isNew && channel->getInviteOnly()) {
     if (!channel->isInvited(client->getNickname())) {
-      std::string err = ":server 473 " + client->getNickname() + " " +
+      std::string err = ":" + _serverName + " 473 " + client->getNickname() + " " +
                         channelName + " :Cannot join channel (+i)\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       return;
@@ -196,7 +196,7 @@ void Server::handleJoin(Client *client) {
   if (!isNew && !channel->getKey().empty()) {
     std::string key = client->extractToken();
     if (key != channel->getKey()) {
-      std::string err = ":server 475 " + client->getNickname() + " " +
+      std::string err = ":" + _serverName + " 475 " + client->getNickname() + " " +
                         channelName + " :Cannot join channel (+k)\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       return;
@@ -206,7 +206,7 @@ void Server::handleJoin(Client *client) {
   // Modo +l: límite de usuarios
   if (!isNew && channel->getUserLimit() > 0) {
     if (channel->getMemberCount() >= channel->getUserLimit()) {
-      std::string err = ":server 471 " + client->getNickname() + " " +
+      std::string err = ":" + _serverName + " 471 " + client->getNickname() + " " +
                         channelName + " :Cannot join channel (+l)\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       return;
@@ -232,19 +232,19 @@ void Server::handleJoin(Client *client) {
 
   // 2. Enviar el topic (RPL_TOPIC 332) si existe
   if (!channel->getTopic().empty()) {
-    std::string topicMsg = ":server 332 " + client->getNickname() + " " +
+    std::string topicMsg = ":" + _serverName + " 332 " + client->getNickname() + " " +
                            channelName + " :" + channel->getTopic() + "\r\n";
     ::send(client->getClientFd(), topicMsg.c_str(), topicMsg.length(), 0);
   }
 
   // 3. Enviar lista de miembros (RPL_NAMREPLY 353)
   // El '=' indica un canal público
-  std::string namesMsg = ":server 353 " + client->getNickname() + " = " +
+  std::string namesMsg = ":" + _serverName + " 353 " + client->getNickname() + " = " +
                          channelName + " :" + channel->getMemberList() + "\r\n";
   ::send(client->getClientFd(), namesMsg.c_str(), namesMsg.length(), 0);
 
   // 4. Fin de la lista de nombres (RPL_ENDOFNAMES 366)
-  std::string endMsg = ":server 366 " + client->getNickname() + " " +
+  std::string endMsg = ":" + _serverName + " 366 " + client->getNickname() + " " +
                        channelName + " :End of /NAMES list\r\n";
   ::send(client->getClientFd(), endMsg.c_str(), endMsg.length(), 0);
 
@@ -268,7 +268,7 @@ void Server::handleJoin(Client *client) {
 void Server::handlePrivmsg(Client *client, const std::string &params) {
   // Parsear: target <espacio> :mensaje
   if (params.empty()) {
-    std::string err = ":server 411 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 411 " + client->getNickname() +
                       " :No recipient given (PRIVMSG)\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -278,7 +278,7 @@ void Server::handlePrivmsg(Client *client, const std::string &params) {
   size_t spacePos = params.find(' ');
   if (spacePos == std::string::npos) {
     std::string err =
-        ":server 412 " + client->getNickname() + " :No text to send\r\n";
+        ":" + _serverName + " 412 " + client->getNickname() + " :No text to send\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
   }
@@ -292,7 +292,7 @@ void Server::handlePrivmsg(Client *client, const std::string &params) {
 
   if (messageText.empty()) {
     std::string err =
-        ":server 412 " + client->getNickname() + " :No text to send\r\n";
+        ":" + _serverName + " 412 " + client->getNickname() + " :No text to send\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
   }
@@ -305,7 +305,7 @@ void Server::handlePrivmsg(Client *client, const std::string &params) {
   if (target[0] == '#') {
     std::map<std::string, Channel *>::iterator it = _channels.find(target);
     if (it == _channels.end()) {
-      std::string err = ":server 403 " + client->getNickname() + " " + target +
+      std::string err = ":" + _serverName + " 403 " + client->getNickname() + " " + target +
                         " :No such channel\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       return;
@@ -314,7 +314,7 @@ void Server::handlePrivmsg(Client *client, const std::string &params) {
 
     // Verificar que el cliente es miembro del canal
     if (!channel->isMember(client->getClientFd())) {
-      std::string err = ":server 404 " + client->getNickname() + " " + target +
+      std::string err = ":" + _serverName + " 404 " + client->getNickname() + " " + target +
                         " :Cannot send to channel\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       return;
@@ -339,7 +339,7 @@ void Server::handlePrivmsg(Client *client, const std::string &params) {
     }
 
     if (targetClient == NULL) {
-      std::string err = ":server 401 " + client->getNickname() + " " + target +
+      std::string err = ":" + _serverName + " 401 " + client->getNickname() + " " + target +
                         " :No such nick/channel\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       return;
@@ -375,7 +375,7 @@ Client *Server::findClientByNick(const std::string &nickname) {
  */
 void Server::handlePart(Client *client, const std::string &params) {
   if (params.empty()) {
-    std::string err = ":server 461 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 461 " + client->getNickname() +
                       " PART :Not enough parameters\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -392,7 +392,7 @@ void Server::handlePart(Client *client, const std::string &params) {
 
   std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
   if (it == _channels.end()) {
-    std::string err = ":server 403 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 403 " + client->getNickname() + " " +
                       channelName + " :No such channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -400,7 +400,7 @@ void Server::handlePart(Client *client, const std::string &params) {
 
   Channel *channel = it->second;
   if (!channel->isMember(client->getClientFd())) {
-    std::string err = ":server 442 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 442 " + client->getNickname() + " " +
                       channelName + " :You're not on that channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -429,7 +429,7 @@ void Server::handlePart(Client *client, const std::string &params) {
  */
 void Server::handleKick(Client *client, const std::string &params) {
   if (params.empty()) {
-    std::string err = ":server 461 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 461 " + client->getNickname() +
                       " KICK :Not enough parameters\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -454,7 +454,7 @@ void Server::handleKick(Client *client, const std::string &params) {
     reason = client->getNickname();
 
   if (targetNick.empty()) {
-    std::string err = ":server 461 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 461 " + client->getNickname() +
                       " KICK :Not enough parameters\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -462,7 +462,7 @@ void Server::handleKick(Client *client, const std::string &params) {
 
   std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
   if (it == _channels.end()) {
-    std::string err = ":server 403 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 403 " + client->getNickname() + " " +
                       channelName + " :No such channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -472,7 +472,7 @@ void Server::handleKick(Client *client, const std::string &params) {
 
   // Verificar que el que hace KICK es operador
   if (!channel->isOperator(client->getClientFd())) {
-    std::string err = ":server 482 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 482 " + client->getNickname() + " " +
                       channelName + " :You're not channel operator\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -481,7 +481,7 @@ void Server::handleKick(Client *client, const std::string &params) {
   // Buscar al usuario a expulsar
   Client *target = findClientByNick(targetNick);
   if (!target || !channel->isMember(target->getClientFd())) {
-    std::string err = ":server 441 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 441 " + client->getNickname() + " " +
                       targetNick + " " + channelName +
                       " :They aren't on that channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
@@ -504,7 +504,7 @@ void Server::handleKick(Client *client, const std::string &params) {
  */
 void Server::handleInvite(Client *client, const std::string &params) {
   if (params.empty()) {
-    std::string err = ":server 461 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 461 " + client->getNickname() +
                       " INVITE :Not enough parameters\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -515,7 +515,7 @@ void Server::handleInvite(Client *client, const std::string &params) {
   iss >> targetNick >> channelName;
 
   if (channelName.empty()) {
-    std::string err = ":server 461 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 461 " + client->getNickname() +
                       " INVITE :Not enough parameters\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -523,7 +523,7 @@ void Server::handleInvite(Client *client, const std::string &params) {
 
   std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
   if (it == _channels.end()) {
-    std::string err = ":server 403 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 403 " + client->getNickname() + " " +
                       channelName + " :No such channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -533,7 +533,7 @@ void Server::handleInvite(Client *client, const std::string &params) {
 
   // El invitador debe ser miembro del canal
   if (!channel->isMember(client->getClientFd())) {
-    std::string err = ":server 442 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 442 " + client->getNickname() + " " +
                       channelName + " :You're not on that channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -541,7 +541,7 @@ void Server::handleInvite(Client *client, const std::string &params) {
 
   // Si el canal es invite-only, solo operadores pueden invitar
   if (channel->getInviteOnly() && !channel->isOperator(client->getClientFd())) {
-    std::string err = ":server 482 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 482 " + client->getNickname() + " " +
                       channelName + " :You're not channel operator\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -549,14 +549,14 @@ void Server::handleInvite(Client *client, const std::string &params) {
 
   Client *target = findClientByNick(targetNick);
   if (!target) {
-    std::string err = ":server 401 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 401 " + client->getNickname() + " " +
                       targetNick + " :No such nick/channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
   }
 
   if (channel->isMember(target->getClientFd())) {
-    std::string err = ":server 443 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 443 " + client->getNickname() + " " +
                       targetNick + " " + channelName +
                       " :is already on channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
@@ -567,7 +567,7 @@ void Server::handleInvite(Client *client, const std::string &params) {
   channel->addInvite(targetNick);
 
   // Confirmar al invitador (RPL_INVITING 341)
-  std::string confirmMsg = ":server 341 " + client->getNickname() + " " +
+  std::string confirmMsg = ":" + _serverName + " 341 " + client->getNickname() + " " +
                            targetNick + " " + channelName + "\r\n";
   ::send(client->getClientFd(), confirmMsg.c_str(), confirmMsg.length(), 0);
 
@@ -585,7 +585,7 @@ void Server::handleInvite(Client *client, const std::string &params) {
  */
 void Server::handleTopic(Client *client, const std::string &params) {
   if (params.empty()) {
-    std::string err = ":server 461 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 461 " + client->getNickname() +
                       " TOPIC :Not enough parameters\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -597,7 +597,7 @@ void Server::handleTopic(Client *client, const std::string &params) {
 
   std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
   if (it == _channels.end()) {
-    std::string err = ":server 403 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 403 " + client->getNickname() + " " +
                       channelName + " :No such channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -606,7 +606,7 @@ void Server::handleTopic(Client *client, const std::string &params) {
   Channel *channel = it->second;
 
   if (!channel->isMember(client->getClientFd())) {
-    std::string err = ":server 442 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 442 " + client->getNickname() + " " +
                       channelName + " :You're not on that channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -615,11 +615,11 @@ void Server::handleTopic(Client *client, const std::string &params) {
   // Si no hay parámetro de topic, mostrar el actual
   if (spacePos == std::string::npos) {
     if (channel->getTopic().empty()) {
-      std::string msg = ":server 331 " + client->getNickname() + " " +
+      std::string msg = ":" + _serverName + " 331 " + client->getNickname() + " " +
                         channelName + " :No topic is set\r\n";
       ::send(client->getClientFd(), msg.c_str(), msg.length(), 0);
     } else {
-      std::string msg = ":server 332 " + client->getNickname() + " " +
+      std::string msg = ":" + _serverName + " 332 " + client->getNickname() + " " +
                         channelName + " :" + channel->getTopic() + "\r\n";
       ::send(client->getClientFd(), msg.c_str(), msg.length(), 0);
     }
@@ -630,7 +630,7 @@ void Server::handleTopic(Client *client, const std::string &params) {
   // Si modo +t activo, solo operadores pueden cambiar
   if (channel->getTopicRestricted() &&
       !channel->isOperator(client->getClientFd())) {
-    std::string err = ":server 482 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 482 " + client->getNickname() + " " +
                       channelName + " :You're not channel operator\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -660,7 +660,7 @@ void Server::handleTopic(Client *client, const std::string &params) {
  */
 void Server::handleMode(Client *client, const std::string &params) {
   if (params.empty()) {
-    std::string err = ":server 461 " + client->getNickname() +
+    std::string err = ":" + _serverName + " 461 " + client->getNickname() +
                       " MODE :Not enough parameters\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -676,7 +676,7 @@ void Server::handleMode(Client *client, const std::string &params) {
 
   std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
   if (it == _channels.end()) {
-    std::string err = ":server 403 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 403 " + client->getNickname() + " " +
                       channelName + " :No such channel\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -686,7 +686,7 @@ void Server::handleMode(Client *client, const std::string &params) {
 
   // Sin modo: mostrar modos actuales (RPL_CHANNELMODEIS 324)
   if (modeStr.empty()) {
-    std::string msg = ":server 324 " + client->getNickname() + " " +
+    std::string msg = ":" + _serverName + " 324 " + client->getNickname() + " " +
                       channelName + " " + channel->getModeString() + "\r\n";
     ::send(client->getClientFd(), msg.c_str(), msg.length(), 0);
     return;
@@ -694,7 +694,7 @@ void Server::handleMode(Client *client, const std::string &params) {
 
   // Verificar que es operador para cambiar modos
   if (!channel->isOperator(client->getClientFd())) {
-    std::string err = ":server 482 " + client->getNickname() + " " +
+    std::string err = ":" + _serverName + " 482 " + client->getNickname() + " " +
                       channelName + " :You're not channel operator\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     return;
@@ -782,7 +782,7 @@ void Server::handleMode(Client *client, const std::string &params) {
       break;
 
     default: {
-      std::string err = ":server 472 " + client->getNickname() + " " +
+      std::string err = ":" + _serverName + " 472 " + client->getNickname() + " " +
                         std::string(1, c) + " :is unknown mode char to me\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       break;

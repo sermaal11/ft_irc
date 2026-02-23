@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/23 10:31:36 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/23 23:28:53 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,7 @@ private:
   // === CONFIGURACIÓN ===
   int _port;             // Puerto del servidor (6667 típicamente)
   std::string _password; // Contraseña para PASS
+  std::string _serverName; // Nombre del servidor (ej: "ft_irc")
 
   // === CONEXIÓN ===
   int _serverFd;                // Socket principal del servidor
