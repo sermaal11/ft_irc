@@ -6,6 +6,7 @@ CFLAGS = -g3 -Wall -Wextra -Werror -std=c++98
 SRC =	    src/main.cpp \
             src/Server.cpp \
 			src/Client.cpp \
+			src/Channel.cpp \
 			src/Parsing.cpp \
 			src/Parsing_Utils.cpp
 

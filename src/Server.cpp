@@ -3,298 +3,1010 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
+/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/18 16:01:34 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/23 10:38:02 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
+#include "../include/Channel.hpp"
 #include "../include/Utils.hpp"
 
-
 /*
-* Constructor.
-* Inicializa el servidor con el puerto y la contraseña proporcionados.
-*/
+ * Constructor.
+ * Inicializa el servidor con el puerto y la contraseña proporcionados.
+ */
 Server::Server(int port, std::string &password)
     : _port(port), _password(password), _serverFd(-1) {}
-Server::~Server() {}
+Server::~Server() {
+  // Liberar todos los clientes
+  std::map<int, Client *>::iterator cit;
+  for (cit = _clients.begin(); cit != _clients.end(); ++cit) {
+    ::close(cit->first);
+    delete cit->second;
+  }
+  _clients.clear();
 
+  // Liberar todos los canales
+  std::map<std::string, Channel *>::iterator chit;
+  for (chit = _channels.begin(); chit != _channels.end(); ++chit) {
+    delete chit->second;
+  }
+  _channels.clear();
 
-//Mensaje de bienvenido cuando un usario se conecta al server
-void	Server::sendWelcomeMessage(Client *client)
-{
-	std::string wellmessage = ":server 001 " + client->getNickname() + " :Welcome to the server!\r\n";
-	::send(client->getClientFd(), wellmessage.c_str(), wellmessage.length(), 0);
-	std::cout << GREEN << "Welcome message sent to " << client->getNickname() << RESET << RED << "(DEBUG)" << RESET << "\n";
+  // Cerrar el socket del servidor
+  if (_serverFd >= 0)
+    ::close(_serverFd);
+}
+
+// Mensaje de bienvenido cuando un usario se conecta al server
+void Server::sendWelcomeMessage(Client *client) {
+  std::string wellmessage =
+      ":server 001 " + client->getNickname() + " :Welcome to the server!\r\n";
+  ::send(client->getClientFd(), wellmessage.c_str(), wellmessage.length(), 0);
+  std::cout << GREEN << "Welcome message sent to " << client->getNickname()
+            << RESET << RED << "(DEBUG)" << RESET << "\n";
 }
 
 /*
-* Verifica si el cliente ha completado el registro.
-* Un cliente está registrado cuando:
-* 1. Ha enviado la contraseña correcta (isAuthenticated = true)
-* 2. Ha establecido un nickname (hasNickGiven = true)
-* 3. Ha enviado el comando USER (hasPassGiven = true
-* 
-* Si el cliente acaba de completar el registro, se le envía el mensaje de bienvenida.
-*/
-void Server::checkClientRegister(Client *client)
-{
-	if (client->getIsAuthenticated() && client->getHasNickGiven() && client->getHasUserGiven())
-	{
-		sendWelcomeMessage(client);
-	}
-}
-
-
-/*
-* Elimina un cliente del servidor y libera sus recursos.
-* Esta función se llama cuando un cliente se desconecta (voluntariamente con QUIT
-* o por error de conexión detectado por recv()).
-* Proceso de limpieza:
-* 1. Busca el cliente en el mapa _clients usando su file descriptor
-*    - Si lo encuentra, libera la memoria del objeto Client (delete)
-*    - Elimina la entrada del mapa _clients
-* 2. Busca el file descriptor en el vector _pollFds
-*    - Recorre el vector hasta encontrar el fd correspondiente
-*    - Elimina la entrada del vector para que poll() no lo monitorice más
-*    - break: sale del bucle una vez encontrado (cada fd aparece una sola vez)
-* 3. Cierra el socket del cliente con close()
-* 4. Muestra mensaje de desconexión con el fd del cliente
-* Es fundamental realizar toda esta limpieza para evitar memory leaks y
-* que poll() no intente monitorizar sockets cerrados.
-*/
-void	Server::removeClient(int fd)
-{
-	//buscar cliente en el mapa
-	std::map<int, Client*>::iterator it = _clients.find(fd);
-	if (it != _clients.end())
-	{
-		delete it->second;
-		_clients.erase(it);
-	}
-	//buscar cliente en el vector de poll
-	for (size_t i = 0; i < _pollFds.size(); i++)
-	{
-		if (_pollFds[i].fd == fd)
-		{
-			_pollFds.erase(_pollFds.begin() + i);
-			break;
-		}
-	}
-	::close(fd);
-	std::cout << YELLOW << "Client disconnected (fd=" << fd << ")" << RESET << "\n";
+ * Verifica si el cliente ha completado el registro.
+ * Un cliente está registrado cuando:
+ * 1. Ha enviado la contraseña correcta (isAuthenticated = true)
+ * 2. Ha establecido un nickname (hasNickGiven = true)
+ * 3. Ha enviado el comando USER (hasPassGiven = true
+ *
+ * Si el cliente acaba de completar el registro, se le envía el mensaje de
+ * bienvenida.
+ */
+void Server::checkClientRegister(Client *client) {
+  if (client->getIsAuthenticated() && client->getHasNickGiven() &&
+      client->getHasUserGiven()) {
+    sendWelcomeMessage(client);
+  }
 }
 
 /*
-* Inicia el servidor.
-* Crea un socket y lo configura para que escuche en el puerto especificado.
-*/
-int	Server::createServerSocket() 
-{
-	/*
-	* Crea un socket y lo configura para que escuche en el puerto especificado.
-	* AF_INET: protocolo de red (IPv4). Indica uso de IPv4, suficiente y más simple para este proyecto.
-	* SOCK_STREAM: tipo de socket (TCP). Indica comunicación TCP orientada a conexión y fiable.
-	* 0: protocolo de transporte (TCP). Elige automáticamente el protocolo adecuado.
-	* socket() devuelve un file descriptor (int).
-	*/
-	int serverFd = ::socket(AF_INET, SOCK_STREAM, 0);
-	if (serverFd < 0) 
-	{
-		std::cerr << RED << "socket() failed: " << std::strerror(errno)
-		<< RESET << "\n";
-		return (-1);
-	}
-	std::cout << GREEN << "OK: socket created (fd=" << serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
-	
-	/*
-	* Configura el socket para que pueda ser reutilizado.
-	* SOL_SOCKET: nivel de socket. El nivel se obtiene de la librería <sys/socket.h>.
-	* SO_REUSEADDR: opción de socket. Permite reutilizar la dirección del socket.
-	* opt: valor de la opción. 1 = true, 0 = false. Esto permite reutilizar el puerto aunque esté en TIME_WAIT.
-	*/
-	int opt = 1;
-	if (::setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) 
-	{
-    	std::cerr << RED << "setsockopt(SO_REUSEADDR) failed: " << std::strerror(errno) << RESET << "\n";
-    	::close(serverFd);
-    	return (-1);
-	}
-	std::cout << GREEN << "OK: SO_REUSEADDR enabled" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
-
-	/*
-	* Configura el socket para que no bloquee.
-	* fcntl: función para manipular descriptores de archivo. Devuelve -1 si falla.
-	* F_SETFL: establece flags del descriptor de archivo. Las flags se obtienen de la librería <fcntl.h>.
-	* O_NONBLOCK: flag para establecer el socket en modo no bloqueante.
-	*/
-	if (fcntl(serverFd, F_SETFL, O_NONBLOCK) < 0) 
-	{
-    	std::cerr << RED << "fcntl(O_NONBLOCK) failed: " << std::strerror(errno) << RESET << "\n";
-    	::close(serverFd);
-    	return (-1);
-	}
-
-	std::cout << GREEN << "OK: socket set to non-blocking mode" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
-	return serverFd;
+ * Elimina un cliente del servidor y libera sus recursos.
+ * Esta función se llama cuando un cliente se desconecta (voluntariamente con
+ * QUIT o por error de conexión detectado por recv()). Proceso de limpieza:
+ * 1. Busca el cliente en el mapa _clients usando su file descriptor
+ *    - Si lo encuentra, libera la memoria del objeto Client (delete)
+ *    - Elimina la entrada del mapa _clients
+ * 2. Busca el file descriptor en el vector _pollFds
+ *    - Recorre el vector hasta encontrar el fd correspondiente
+ *    - Elimina la entrada del vector para que poll() no lo monitorice más
+ *    - break: sale del bucle una vez encontrado (cada fd aparece una sola vez)
+ * 3. Cierra el socket del cliente con close()
+ * 4. Muestra mensaje de desconexión con el fd del cliente
+ * Es fundamental realizar toda esta limpieza para evitar memory leaks y
+ * que poll() no intente monitorizar sockets cerrados.
+ */
+void Server::removeClient(int fd) {
+  // buscar cliente en el mapa
+  std::map<int, Client *>::iterator it = _clients.find(fd);
+  if (it != _clients.end()) {
+    // Eliminar al cliente de todos los canales antes de borrarlo
+    removeClientFromChannels(it->second);
+    delete it->second;
+    _clients.erase(it);
+  }
+  // buscar cliente en el vector de poll
+  for (size_t i = 0; i < _pollFds.size(); i++) {
+    if (_pollFds[i].fd == fd) {
+      _pollFds.erase(_pollFds.begin() + i);
+      break;
+    }
+  }
+  ::close(fd);
+  std::cout << YELLOW << "Client disconnected (fd=" << fd << ")" << RESET
+            << "\n";
 }
 
 /*
-* Asocia el socket a una dirección y lo pone en modo escucha.
-* Retorna true si tiene éxito, false si falla.
-*/
-bool Server::bindAndListen() 
-{
-	/*
-    * Asocia el socket a una dirección IP y puerto (bind).
-    * sockaddr_in: estructura que contiene la información de la dirección.
-    * sin_family: familia de direcciones (AF_INET para IPv4).
-    * sin_addr.s_addr: dirección IP (INADDR_ANY acepta conexiones de cualquier interfaz).
-    * sin_port: puerto en formato de red (htons convierte a big-endian).
-    */
-	struct sockaddr_in address;
-	std::memset(&address, 0, sizeof(address));
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(_port);
+ * Elimina un cliente de todos los canales en los que participa.
+ * Se llama desde removeClient() cuando el cliente se desconecta.
+ * Notifica a los demás miembros del canal con un mensaje QUIT.
+ * Si el canal queda vacío después de eliminar al cliente, se destruye.
+ */
+void Server::removeClientFromChannels(Client *client) {
+  int fd = client->getClientFd();
+  std::string quitMsg =
+      ":" + client->getNickname() + " QUIT :Client disconnected\r\n";
 
-	if (::bind(_serverFd, (struct sockaddr *)&address, sizeof(address)) < 0)
-	{
-		std::cerr << RED << "bind() failed: " << std::strerror(errno) << RESET << "\n";
-		return false;
-	}
-	std::cout << GREEN << "OK: socket bound to port " << _port << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
-	
-	/*
-    * Pone el socket en modo escucha (listen).
-    * SOMAXCONN: número máximo de conexiones pendientes en la cola.
-    */
-	if (::listen(_serverFd, SOMAXCONN) < 0)
-	{
-		std::cerr << RED << "listen() failed: " << std::strerror(errno) << RESET << "\n";
-		return false;
-	}
-	std::cout << GREEN << "OK: socket listening" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
-	return true;
+  std::map<std::string, Channel *>::iterator it = _channels.begin();
+  while (it != _channels.end()) {
+    if (it->second->isMember(fd)) {
+      // Notificar a los demás miembros del canal
+      it->second->broadcastMessage(quitMsg, fd);
+      it->second->removeMember(fd);
+
+      // Si el canal queda vacío, destruirlo
+      if (it->second->getMemberCount() == 0) {
+        delete it->second;
+        _channels.erase(it++);
+        continue;
+      }
+    }
+    ++it;
+  }
 }
 
 /*
-* Acepta una nueva conexion de cliente.
-* Añade el nuevo socker al vector de poll
-*/
+ * Maneja el comando JOIN.
+ * Formato: JOIN #canal
+ * Pasos:
+ * 1. Extrae el nombre del canal del buffer del cliente
+ * 2. Verifica que el nombre empiece con '#'
+ * 3. Si el canal no existe, lo crea y hace al cliente operador
+ * 4. Si ya existe, añade al cliente como miembro
+ * 5. Envía mensajes IRC de confirmación:
+ *    - JOIN a todos los miembros del canal
+ *    - RPL_TOPIC (332) si hay un topic
+ *    - RPL_NAMREPLY (353) con la lista de miembros
+ *    - RPL_ENDOFNAMES (366)
+ */
+void Server::handleJoin(Client *client) {
+  std::string channelName = client->extractToken();
 
-void Server::acceptNewClient() 
-{
-	/*
-	* Acepta una nueva conexión de cliente.
-	* Retorna nuevo fd para comunicar con el cliente.
-	*/
-	int clientFd = ::accept(_serverFd, NULL, NULL);
-	if (clientFd < 0) 
-	{
-		std::cerr << RED << "accept() failed: " << std::strerror(errno) << RESET << "\n";
-		return;
-	}
+  // Verificar que se proporcionó un nombre de canal
+  if (channelName.empty()) {
+    std::string err = ":server 461 " + client->getNickname() +
+                      " JOIN :Not enough parameters\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
 
-	/*
-	* Configurar el socker del cliente como no bloqueante
-	*/
-	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) 
-	{
-		std::cerr << RED << "fcntl(O_NONBLOCK) on client failed" << RESET << "\n";
-		::close(clientFd);
-		return;
-	}
-	/*
-	* Crear nuevo objeto cliente y ponerlo en el map clave->valor
-	*/
-	Client* newClient = new Client(clientFd);
-	_clients[clientFd]= newClient;
-	
-	/*
-	* Añadir el cliente al vector de poll.
-	*/
-	pollfd clientPollFd;
-	clientPollFd.fd = clientFd;
-	clientPollFd.events = POLLIN;
-	clientPollFd.revents = 0;
-	_pollFds.push_back(clientPollFd);
+  // Verificar que el nombre del canal empiece con '#'
+  if (channelName[0] != '#') {
+    std::string err = ":server 403 " + client->getNickname() + " " +
+                      channelName + " :No such channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
 
-	std::cout << GREEN << "OK: new client connected (fd=" << clientFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+  // Verificar si el canal ya existe
+  bool isNew = false;
+  if (_channels.find(channelName) == _channels.end()) {
+    // Crear el canal si no existe
+    _channels[channelName] = new Channel(channelName);
+    isNew = true;
+  }
+
+  Channel *channel = _channels[channelName];
+
+  // Si el cliente ya es miembro, no hacer nada
+  if (channel->isMember(client->getClientFd()))
+    return;
+
+  // === Verificar restricciones de modos ===
+
+  // Modo +i: invite-only - verificar si está invitado
+  if (!isNew && channel->getInviteOnly()) {
+    if (!channel->isInvited(client->getNickname())) {
+      std::string err = ":server 473 " + client->getNickname() + " " +
+                        channelName + " :Cannot join channel (+i)\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      return;
+    }
+  }
+
+  // Modo +k: clave del canal
+  if (!isNew && !channel->getKey().empty()) {
+    std::string key = client->extractToken();
+    if (key != channel->getKey()) {
+      std::string err = ":server 475 " + client->getNickname() + " " +
+                        channelName + " :Cannot join channel (+k)\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      return;
+    }
+  }
+
+  // Modo +l: límite de usuarios
+  if (!isNew && channel->getUserLimit() > 0) {
+    if (channel->getMemberCount() >= channel->getUserLimit()) {
+      std::string err = ":server 471 " + client->getNickname() + " " +
+                        channelName + " :Cannot join channel (+l)\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      return;
+    }
+  }
+
+  // Añadir al cliente como miembro
+  channel->addMember(client);
+
+  // Eliminar de la lista de invitados si estaba
+  channel->removeInvite(client->getNickname());
+
+  // Si es un canal nuevo, el creador es operador
+  if (isNew)
+    channel->addOperator(client);
+
+  // === Enviar mensajes IRC de confirmación ===
+
+  // 1. Notificar a TODOS los miembros del canal (incluido el que se une)
+  std::string joinMsg =
+      ":" + client->getNickname() + " JOIN " + channelName + "\r\n";
+  channel->broadcastMessage(joinMsg, -1);
+
+  // 2. Enviar el topic (RPL_TOPIC 332) si existe
+  if (!channel->getTopic().empty()) {
+    std::string topicMsg = ":server 332 " + client->getNickname() + " " +
+                           channelName + " :" + channel->getTopic() + "\r\n";
+    ::send(client->getClientFd(), topicMsg.c_str(), topicMsg.length(), 0);
+  }
+
+  // 3. Enviar lista de miembros (RPL_NAMREPLY 353)
+  // El '=' indica un canal público
+  std::string namesMsg = ":server 353 " + client->getNickname() + " = " +
+                         channelName + " :" + channel->getMemberList() + "\r\n";
+  ::send(client->getClientFd(), namesMsg.c_str(), namesMsg.length(), 0);
+
+  // 4. Fin de la lista de nombres (RPL_ENDOFNAMES 366)
+  std::string endMsg = ":server 366 " + client->getNickname() + " " +
+                       channelName + " :End of /NAMES list\r\n";
+  ::send(client->getClientFd(), endMsg.c_str(), endMsg.length(), 0);
+
+  std::cout << GREEN << "OK: " << client->getNickname() << " joined "
+            << channelName << " (" << channel->getMemberCount() << " members)"
+            << RESET << RED << " (DEBUG)" << RESET << "\n";
 }
 
 /*
-* Inicia el servidor.
-* Crea un socket y lo configura para que escuche en el puerto especificado.
-*/
-void Server::run() 
-{
-    _serverFd = createServerSocket();
-    if (_serverFd < 0)
-        return;
+ * Maneja el comando PRIVMSG.
+ * Formato: PRIVMSG <target> :<mensaje>
+ * <target> puede ser:
+ *   - Un nombre de canal (#canal): el mensaje se reenvía a todos los miembros
+ *   - Un nickname: el mensaje se envía directamente a ese usuario
+ * Pasos:
+ * 1. Parsea el target y el mensaje de la línea de parámetros
+ * 2. Si target empieza con '#', busca el canal y hace broadcast
+ * 3. Si no, busca al usuario por nickname y le envía el mensaje
+ * 4. Envía errores IRC si el target no existe o faltan parámetros
+ */
+void Server::handlePrivmsg(Client *client, const std::string &params) {
+  // Parsear: target <espacio> :mensaje
+  if (params.empty()) {
+    std::string err = ":server 411 " + client->getNickname() +
+                      " :No recipient given (PRIVMSG)\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
 
-	if (!bindAndListen())
-	{
-		::close(_serverFd);
-		return;
-	}
-    
-    std::cout << GREEN << "OK: server socket created for port " << _port << " (fd=" << _serverFd << ")" << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+  // Extraer target (primer token)
+  size_t spacePos = params.find(' ');
+  if (spacePos == std::string::npos) {
+    std::string err =
+        ":server 412 " + client->getNickname() + " :No text to send\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
 
+  std::string target = params.substr(0, spacePos);
+  std::string messageText = params.substr(spacePos + 1);
 
-	/*
-	* Añadir el socket del servidor al vector de poll
-	* POLLIN: monitorizar eventos de nuevas conexiones
-	* revents: Eventos que ya ocurrieron
-	* push_back: añadimos fs del servidor al vector primero
-	*/
-	pollfd	serverPollFd;
-	serverPollFd.fd = _serverFd;
-	serverPollFd.events = POLLIN;
-	serverPollFd.revents = 0;
-	_pollFds.push_back(serverPollFd);
-	
-	/*
-	* LOOP PRINCIPAL DEL SERVER
-	* poll() bloquea hasta ver actividad en algun fd
-	* -1: timeout infinito
-	*/
+  // Si el mensaje empieza con ':', quitarlo (formato IRC)
+  if (!messageText.empty() && messageText[0] == ':')
+    messageText = messageText.substr(1);
 
-	// ! revisar
-	while (true)
-	{
-		// poll( 1. Puntero -> array de fds, 2. Tamañon del array, 3. Segundos: -1: Tiempo de espera indefinido.)
-		int pollCount = ::poll(&_pollFds[0], _pollFds.size(), -1);
-		if (pollCount < 0)
-		{
-			std::cerr << RED << "poll() failed: " << std::strerror(errno) << RESET << "\n";
-			break;
-		}
-		/*
-		* Recorrer todos los fds para ver cual ha tenido actividad
-		* Indice para no modificar el vector durante la iteracion 
-		*/
+  if (messageText.empty()) {
+    std::string err =
+        ":server 412 " + client->getNickname() + " :No text to send\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
 
-		for (size_t i = 0; i < _pollFds.size(); i++)
-		{
-			// Verificamos si hay eventos en el fd del server
-			if (_pollFds[i].revents & POLLIN)
-			{
-				// Si es el socket del server, es una nueva conexion
-				if (_pollFds[i].fd == _serverFd)
-				{
-					acceptNewClient();
-				}
-				// Si no, es un cliente que envia datos.
-				else
-				{
-					handleClientData(i);
-				}
-			}
-		}
-	}
-	::close(_serverFd);
+  // Construir el mensaje IRC completo
+  std::string fullMsg = ":" + client->getNickname() + " PRIVMSG " + target +
+                        " :" + messageText + "\r\n";
+
+  // === Mensaje a canal ===
+  if (target[0] == '#') {
+    std::map<std::string, Channel *>::iterator it = _channels.find(target);
+    if (it == _channels.end()) {
+      std::string err = ":server 403 " + client->getNickname() + " " + target +
+                        " :No such channel\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      return;
+    }
+    Channel *channel = it->second;
+
+    // Verificar que el cliente es miembro del canal
+    if (!channel->isMember(client->getClientFd())) {
+      std::string err = ":server 404 " + client->getNickname() + " " + target +
+                        " :Cannot send to channel\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      return;
+    }
+
+    // Enviar a todos los miembros del canal excepto al emisor
+    channel->broadcastMessage(fullMsg, client->getClientFd());
+
+    std::cout << BLUE << client->getNickname() << " -> " << target << ": "
+              << messageText << RESET << RED << " (DEBUG)" << RESET << "\n";
+  }
+  // === Mensaje privado ===
+  else {
+    // Buscar al destinatario por nickname
+    Client *targetClient = NULL;
+    std::map<int, Client *>::iterator it;
+    for (it = _clients.begin(); it != _clients.end(); ++it) {
+      if (it->second->getNickname() == target) {
+        targetClient = it->second;
+        break;
+      }
+    }
+
+    if (targetClient == NULL) {
+      std::string err = ":server 401 " + client->getNickname() + " " + target +
+                        " :No such nick/channel\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      return;
+    }
+
+    // Enviar el mensaje al destinatario
+    ::send(targetClient->getClientFd(), fullMsg.c_str(), fullMsg.length(), 0);
+
+    std::cout << BLUE << client->getNickname() << " -> " << target
+              << " (PM): " << messageText << RESET << RED << " (DEBUG)" << RESET
+              << "\n";
+  }
+}
+
+/*
+ * Busca un cliente por nickname.
+ * Recorre el mapa _clients y compara nicknames.
+ * Retorna puntero al cliente si lo encuentra, NULL si no existe.
+ */
+Client *Server::findClientByNick(const std::string &nickname) {
+  std::map<int, Client *>::iterator it;
+  for (it = _clients.begin(); it != _clients.end(); ++it) {
+    if (it->second->getNickname() == nickname)
+      return it->second;
+  }
+  return NULL;
+}
+
+/*
+ * Maneja el comando PART.
+ * Formato: PART #canal [:mensaje]
+ * El cliente sale del canal y se notifica a los demás miembros.
+ */
+void Server::handlePart(Client *client, const std::string &params) {
+  if (params.empty()) {
+    std::string err = ":server 461 " + client->getNickname() +
+                      " PART :Not enough parameters\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Extraer nombre del canal y mensaje opcional
+  size_t spacePos = params.find(' ');
+  std::string channelName =
+      (spacePos != std::string::npos) ? params.substr(0, spacePos) : params;
+  std::string partMsg =
+      (spacePos != std::string::npos) ? params.substr(spacePos + 1) : "";
+  if (!partMsg.empty() && partMsg[0] == ':')
+    partMsg = partMsg.substr(1);
+
+  std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
+  if (it == _channels.end()) {
+    std::string err = ":server 403 " + client->getNickname() + " " +
+                      channelName + " :No such channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  Channel *channel = it->second;
+  if (!channel->isMember(client->getClientFd())) {
+    std::string err = ":server 442 " + client->getNickname() + " " +
+                      channelName + " :You're not on that channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Notificar a todos (incluido el que sale)
+  std::string msg = ":" + client->getNickname() + " PART " + channelName;
+  if (!partMsg.empty())
+    msg += " :" + partMsg;
+  msg += "\r\n";
+  channel->broadcastMessage(msg, -1);
+
+  channel->removeMember(client->getClientFd());
+
+  // Si el canal queda vacío, destruirlo
+  if (channel->getMemberCount() == 0) {
+    delete channel;
+    _channels.erase(it);
+  }
+}
+
+/*
+ * Maneja el comando KICK.
+ * Formato: KICK #canal nickname [:razón]
+ * Solo los operadores pueden expulsar usuarios.
+ */
+void Server::handleKick(Client *client, const std::string &params) {
+  if (params.empty()) {
+    std::string err = ":server 461 " + client->getNickname() +
+                      " KICK :Not enough parameters\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Parsear: #canal nickname [:razón]
+  std::istringstream iss(params);
+  std::string channelName, targetNick, reason;
+  iss >> channelName >> targetNick;
+
+  // Extraer razón si existe
+  std::string rest;
+  if (std::getline(iss, rest) && !rest.empty()) {
+    size_t start = rest.find_first_not_of(' ');
+    if (start != std::string::npos) {
+      reason = rest.substr(start);
+      if (!reason.empty() && reason[0] == ':')
+        reason = reason.substr(1);
+    }
+  }
+  if (reason.empty())
+    reason = client->getNickname();
+
+  if (targetNick.empty()) {
+    std::string err = ":server 461 " + client->getNickname() +
+                      " KICK :Not enough parameters\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
+  if (it == _channels.end()) {
+    std::string err = ":server 403 " + client->getNickname() + " " +
+                      channelName + " :No such channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  Channel *channel = it->second;
+
+  // Verificar que el que hace KICK es operador
+  if (!channel->isOperator(client->getClientFd())) {
+    std::string err = ":server 482 " + client->getNickname() + " " +
+                      channelName + " :You're not channel operator\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Buscar al usuario a expulsar
+  Client *target = findClientByNick(targetNick);
+  if (!target || !channel->isMember(target->getClientFd())) {
+    std::string err = ":server 441 " + client->getNickname() + " " +
+                      targetNick + " " + channelName +
+                      " :They aren't on that channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Notificar a todos los miembros del canal
+  std::string kickMsg = ":" + client->getNickname() + " KICK " + channelName +
+                        " " + targetNick + " :" + reason + "\r\n";
+  channel->broadcastMessage(kickMsg, -1);
+
+  // Eliminar al usuario del canal
+  channel->removeMember(target->getClientFd());
+}
+
+/*
+ * Maneja el comando INVITE.
+ * Formato: INVITE nickname #canal
+ * Solo los operadores pueden invitar cuando el canal es +i.
+ */
+void Server::handleInvite(Client *client, const std::string &params) {
+  if (params.empty()) {
+    std::string err = ":server 461 " + client->getNickname() +
+                      " INVITE :Not enough parameters\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  std::istringstream iss(params);
+  std::string targetNick, channelName;
+  iss >> targetNick >> channelName;
+
+  if (channelName.empty()) {
+    std::string err = ":server 461 " + client->getNickname() +
+                      " INVITE :Not enough parameters\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
+  if (it == _channels.end()) {
+    std::string err = ":server 403 " + client->getNickname() + " " +
+                      channelName + " :No such channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  Channel *channel = it->second;
+
+  // El invitador debe ser miembro del canal
+  if (!channel->isMember(client->getClientFd())) {
+    std::string err = ":server 442 " + client->getNickname() + " " +
+                      channelName + " :You're not on that channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Si el canal es invite-only, solo operadores pueden invitar
+  if (channel->getInviteOnly() && !channel->isOperator(client->getClientFd())) {
+    std::string err = ":server 482 " + client->getNickname() + " " +
+                      channelName + " :You're not channel operator\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  Client *target = findClientByNick(targetNick);
+  if (!target) {
+    std::string err = ":server 401 " + client->getNickname() + " " +
+                      targetNick + " :No such nick/channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  if (channel->isMember(target->getClientFd())) {
+    std::string err = ":server 443 " + client->getNickname() + " " +
+                      targetNick + " " + channelName +
+                      " :is already on channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Añadir a la lista de invitados y notificar
+  channel->addInvite(targetNick);
+
+  // Confirmar al invitador (RPL_INVITING 341)
+  std::string confirmMsg = ":server 341 " + client->getNickname() + " " +
+                           targetNick + " " + channelName + "\r\n";
+  ::send(client->getClientFd(), confirmMsg.c_str(), confirmMsg.length(), 0);
+
+  // Notificar al invitado
+  std::string inviteMsg = ":" + client->getNickname() + " INVITE " +
+                          targetNick + " " + channelName + "\r\n";
+  ::send(target->getClientFd(), inviteMsg.c_str(), inviteMsg.length(), 0);
+}
+
+/*
+ * Maneja el comando TOPIC.
+ * Formato: TOPIC #canal [:nuevo_topic]
+ * Sin parámetro de topic: muestra el topic actual.
+ * Con parámetro: cambia el topic (requiere operador si modo +t activo).
+ */
+void Server::handleTopic(Client *client, const std::string &params) {
+  if (params.empty()) {
+    std::string err = ":server 461 " + client->getNickname() +
+                      " TOPIC :Not enough parameters\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  size_t spacePos = params.find(' ');
+  std::string channelName =
+      (spacePos != std::string::npos) ? params.substr(0, spacePos) : params;
+
+  std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
+  if (it == _channels.end()) {
+    std::string err = ":server 403 " + client->getNickname() + " " +
+                      channelName + " :No such channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  Channel *channel = it->second;
+
+  if (!channel->isMember(client->getClientFd())) {
+    std::string err = ":server 442 " + client->getNickname() + " " +
+                      channelName + " :You're not on that channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Si no hay parámetro de topic, mostrar el actual
+  if (spacePos == std::string::npos) {
+    if (channel->getTopic().empty()) {
+      std::string msg = ":server 331 " + client->getNickname() + " " +
+                        channelName + " :No topic is set\r\n";
+      ::send(client->getClientFd(), msg.c_str(), msg.length(), 0);
+    } else {
+      std::string msg = ":server 332 " + client->getNickname() + " " +
+                        channelName + " :" + channel->getTopic() + "\r\n";
+      ::send(client->getClientFd(), msg.c_str(), msg.length(), 0);
+    }
+    return;
+  }
+
+  // Cambiar el topic
+  // Si modo +t activo, solo operadores pueden cambiar
+  if (channel->getTopicRestricted() &&
+      !channel->isOperator(client->getClientFd())) {
+    std::string err = ":server 482 " + client->getNickname() + " " +
+                      channelName + " :You're not channel operator\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  std::string newTopic = params.substr(spacePos + 1);
+  if (!newTopic.empty() && newTopic[0] == ':')
+    newTopic = newTopic.substr(1);
+
+  channel->setTopic(newTopic);
+
+  // Notificar a todos los miembros
+  std::string topicMsg = ":" + client->getNickname() + " TOPIC " + channelName +
+                         " :" + newTopic + "\r\n";
+  channel->broadcastMessage(topicMsg, -1);
+}
+
+/*
+ * Maneja el comando MODE.
+ * Formato: MODE #canal [+/-modos [parámetros]]
+ * Modos soportados:
+ *   i - invite-only
+ *   t - topic restringido a operadores
+ *   k - clave del canal (requiere parámetro)
+ *   o - dar/quitar operador (requiere parámetro: nickname)
+ *   l - límite de usuarios (requiere parámetro para +l)
+ */
+void Server::handleMode(Client *client, const std::string &params) {
+  if (params.empty()) {
+    std::string err = ":server 461 " + client->getNickname() +
+                      " MODE :Not enough parameters\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  std::istringstream iss(params);
+  std::string channelName, modeStr;
+  iss >> channelName >> modeStr;
+
+  // Si el target no es un canal, ignorar (MODE para usuarios no implementado)
+  if (channelName.empty() || channelName[0] != '#')
+    return;
+
+  std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
+  if (it == _channels.end()) {
+    std::string err = ":server 403 " + client->getNickname() + " " +
+                      channelName + " :No such channel\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  Channel *channel = it->second;
+
+  // Sin modo: mostrar modos actuales (RPL_CHANNELMODEIS 324)
+  if (modeStr.empty()) {
+    std::string msg = ":server 324 " + client->getNickname() + " " +
+                      channelName + " " + channel->getModeString() + "\r\n";
+    ::send(client->getClientFd(), msg.c_str(), msg.length(), 0);
+    return;
+  }
+
+  // Verificar que es operador para cambiar modos
+  if (!channel->isOperator(client->getClientFd())) {
+    std::string err = ":server 482 " + client->getNickname() + " " +
+                      channelName + " :You're not channel operator\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
+  // Parsear los modos
+  bool adding = true; // true = +, false = -
+  std::string appliedModes;
+  std::string appliedParams;
+
+  // Recoger todos los parámetros restantes
+  std::vector<std::string> modeParams;
+  std::string p;
+  while (iss >> p)
+    modeParams.push_back(p);
+  size_t paramIdx = 0;
+
+  for (size_t i = 0; i < modeStr.length(); i++) {
+    char c = modeStr[i];
+
+    if (c == '+') {
+      adding = true;
+      continue;
+    }
+    if (c == '-') {
+      adding = false;
+      continue;
+    }
+
+    switch (c) {
+    case 'i':
+      channel->setInviteOnly(adding);
+      appliedModes += c;
+      break;
+
+    case 't':
+      channel->setTopicRestricted(adding);
+      appliedModes += c;
+      break;
+
+    case 'k':
+      if (adding) {
+        if (paramIdx < modeParams.size()) {
+          channel->setKey(modeParams[paramIdx]);
+          appliedModes += c;
+          appliedParams += " " + modeParams[paramIdx];
+          paramIdx++;
+        }
+      } else {
+        channel->setKey("");
+        appliedModes += c;
+      }
+      break;
+
+    case 'o':
+      if (paramIdx < modeParams.size()) {
+        Client *target = findClientByNick(modeParams[paramIdx]);
+        if (target && channel->isMember(target->getClientFd())) {
+          if (adding)
+            channel->addOperator(target);
+          else
+            channel->removeOperator(target->getClientFd());
+          appliedModes += c;
+          appliedParams += " " + modeParams[paramIdx];
+        }
+        paramIdx++;
+      }
+      break;
+
+    case 'l':
+      if (adding) {
+        if (paramIdx < modeParams.size()) {
+          int limit = std::atoi(modeParams[paramIdx].c_str());
+          if (limit > 0) {
+            channel->setUserLimit(limit);
+            appliedModes += c;
+            appliedParams += " " + modeParams[paramIdx];
+          }
+          paramIdx++;
+        }
+      } else {
+        channel->setUserLimit(0);
+        appliedModes += c;
+      }
+      break;
+
+    default: {
+      std::string err = ":server 472 " + client->getNickname() + " " +
+                        std::string(1, c) + " :is unknown mode char to me\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      break;
+    }
+    }
+  }
+
+  // Notificar a todos los miembros del canal si se aplicaron modos
+  if (!appliedModes.empty()) {
+    std::string prefix = adding ? "+" : "-";
+    std::string modeMsg = ":" + client->getNickname() + " MODE " + channelName +
+                          " " + prefix + appliedModes + appliedParams + "\r\n";
+    channel->broadcastMessage(modeMsg, -1);
+  }
+}
+
+/*
+ * Inicia el servidor.
+ * Crea un socket y lo configura para que escuche en el puerto especificado.
+ */
+int Server::createServerSocket() {
+  /*
+   * Crea un socket y lo configura para que escuche en el puerto especificado.
+   * AF_INET: protocolo de red (IPv4). Indica uso de IPv4, suficiente y más
+   * simple para este proyecto. SOCK_STREAM: tipo de socket (TCP). Indica
+   * comunicación TCP orientada a conexión y fiable. 0: protocolo de transporte
+   * (TCP). Elige automáticamente el protocolo adecuado. socket() devuelve un
+   * file descriptor (int).
+   */
+  int serverFd = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (serverFd < 0) {
+    std::cerr << RED << "socket() failed: " << std::strerror(errno) << RESET
+              << "\n";
+    return (-1);
+  }
+  std::cout << GREEN << "OK: socket created (fd=" << serverFd << ")" << RESET
+            << RED << " DELETE (DEBUG)" << RESET << "\n";
+
+  /*
+   * Configura el socket para que pueda ser reutilizado.
+   * SOL_SOCKET: nivel de socket. El nivel se obtiene de la librería
+   * <sys/socket.h>. SO_REUSEADDR: opción de socket. Permite reutilizar la
+   * dirección del socket. opt: valor de la opción. 1 = true, 0 = false. Esto
+   * permite reutilizar el puerto aunque esté en TIME_WAIT.
+   */
+  int opt = 1;
+  if (::setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    std::cerr << RED
+              << "setsockopt(SO_REUSEADDR) failed: " << std::strerror(errno)
+              << RESET << "\n";
+    ::close(serverFd);
+    return (-1);
+  }
+  std::cout << GREEN << "OK: SO_REUSEADDR enabled" << RESET << RED
+            << " DELETE (DEBUG)" << RESET << "\n";
+
+  /*
+   * Configura el socket para que no bloquee.
+   * fcntl: función para manipular descriptores de archivo. Devuelve -1 si
+   * falla. F_SETFL: establece flags del descriptor de archivo. Las flags se
+   * obtienen de la librería <fcntl.h>. O_NONBLOCK: flag para establecer el
+   * socket en modo no bloqueante.
+   */
+  if (fcntl(serverFd, F_SETFL, O_NONBLOCK) < 0) {
+    std::cerr << RED << "fcntl(O_NONBLOCK) failed: " << std::strerror(errno)
+              << RESET << "\n";
+    ::close(serverFd);
+    return (-1);
+  }
+
+  std::cout << GREEN << "OK: socket set to non-blocking mode" << RESET << RED
+            << " DELETE (DEBUG)" << RESET << "\n";
+  return serverFd;
+}
+
+/*
+ * Asocia el socket a una dirección y lo pone en modo escucha.
+ * Retorna true si tiene éxito, false si falla.
+ */
+bool Server::bindAndListen() {
+  /*
+   * Asocia el socket a una dirección IP y puerto (bind).
+   * sockaddr_in: estructura que contiene la información de la dirección.
+   * sin_family: familia de direcciones (AF_INET para IPv4).
+   * sin_addr.s_addr: dirección IP (INADDR_ANY acepta conexiones de cualquier
+   * interfaz). sin_port: puerto en formato de red (htons convierte a
+   * big-endian).
+   */
+  struct sockaddr_in address;
+  std::memset(&address, 0, sizeof(address));
+  address.sin_family = AF_INET;
+  address.sin_addr.s_addr = INADDR_ANY;
+  address.sin_port = htons(_port);
+
+  if (::bind(_serverFd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+    std::cerr << RED << "bind() failed: " << std::strerror(errno) << RESET
+              << "\n";
+    return false;
+  }
+  std::cout << GREEN << "OK: socket bound to port " << _port << RESET << RED
+            << " DELETE (DEBUG)" << RESET << "\n";
+
+  /*
+   * Pone el socket en modo escucha (listen).
+   * SOMAXCONN: número máximo de conexiones pendientes en la cola.
+   */
+  if (::listen(_serverFd, SOMAXCONN) < 0) {
+    std::cerr << RED << "listen() failed: " << std::strerror(errno) << RESET
+              << "\n";
+    return false;
+  }
+  std::cout << GREEN << "OK: socket listening" << RESET << RED
+            << " DELETE (DEBUG)" << RESET << "\n";
+  return true;
+}
+
+/*
+ * Acepta una nueva conexion de cliente.
+ * Añade el nuevo socker al vector de poll
+ */
+
+void Server::acceptNewClient() {
+  /*
+   * Acepta una nueva conexión de cliente.
+   * Retorna nuevo fd para comunicar con el cliente.
+   */
+  int clientFd = ::accept(_serverFd, NULL, NULL);
+  if (clientFd < 0) {
+    std::cerr << RED << "accept() failed: " << std::strerror(errno) << RESET
+              << "\n";
+    return;
+  }
+
+  /*
+   * Configurar el socker del cliente como no bloqueante
+   */
+  if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
+    std::cerr << RED << "fcntl(O_NONBLOCK) on client failed" << RESET << "\n";
+    ::close(clientFd);
+    return;
+  }
+  /*
+   * Crear nuevo objeto cliente y ponerlo en el map clave->valor
+   */
+  Client *newClient = new Client(clientFd);
+  _clients[clientFd] = newClient;
+
+  /*
+   * Añadir el cliente al vector de poll.
+   */
+  pollfd clientPollFd;
+  clientPollFd.fd = clientFd;
+  clientPollFd.events = POLLIN;
+  clientPollFd.revents = 0;
+  _pollFds.push_back(clientPollFd);
+
+  std::cout << GREEN << "OK: new client connected (fd=" << clientFd << ")"
+            << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+}
+
+/*
+ * Inicia el servidor.
+ * Crea un socket y lo configura para que escuche en el puerto especificado.
+ */
+void Server::run() {
+  _serverFd = createServerSocket();
+  if (_serverFd < 0)
+    return;
+
+  if (!bindAndListen()) {
+    ::close(_serverFd);
+    return;
+  }
+
+  std::cout << GREEN << "OK: server socket created for port " << _port
+            << " (fd=" << _serverFd << ")" << RESET << RED << " DELETE (DEBUG)"
+            << RESET << "\n";
+
+  /*
+   * Añadir el socket del servidor al vector de poll
+   * POLLIN: monitorizar eventos de nuevas conexiones
+   * revents: Eventos que ya ocurrieron
+   * push_back: añadimos fs del servidor al vector primero
+   */
+  pollfd serverPollFd;
+  serverPollFd.fd = _serverFd;
+  serverPollFd.events = POLLIN;
+  serverPollFd.revents = 0;
+  _pollFds.push_back(serverPollFd);
+
+  /*
+   * LOOP PRINCIPAL DEL SERVER
+   * poll() bloquea hasta ver actividad en algun fd
+   * -1: timeout infinito
+   */
+
+  // ! revisar
+  while (true) {
+    // poll( 1. Puntero -> array de fds, 2. Tamañon del array, 3. Segundos: -1:
+    // Tiempo de espera indefinido.)
+    int pollCount = ::poll(&_pollFds[0], _pollFds.size(), -1);
+    if (pollCount < 0) {
+      std::cerr << RED << "poll() failed: " << std::strerror(errno) << RESET
+                << "\n";
+      break;
+    }
+    /*
+     * Recorrer todos los fds para ver cual ha tenido actividad
+     * Indice para no modificar el vector durante la iteracion
+     */
+
+    for (size_t i = 0; i < _pollFds.size(); i++) {
+      // Verificamos si hay eventos en el fd del server
+      if (_pollFds[i].revents & POLLIN) {
+        // Si es el socket del server, es una nueva conexion
+        if (_pollFds[i].fd == _serverFd) {
+          acceptNewClient();
+        }
+        // Si no, es un cliente que envia datos.
+        else {
+          handleClientData(i);
+        }
+      }
+    }
+  }
+  ::close(_serverFd);
 }
