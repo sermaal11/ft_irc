@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/23 09:37:56 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/23 21:09:17 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,7 +87,6 @@ public:
   // GETTERS - Estado de registro
   // ========================================================================
   bool getIsAuthenticated() const; // ¿Ha enviado PASS correctamente?
-  bool getHasPassGiven() const;    // ¿Ha enviado PASS?
   bool getHasNickGiven() const;    // ¿Ha enviado NICK?
   bool getHasUserGiven() const;    // ¿Ha enviado USER?
 
@@ -103,14 +102,12 @@ public:
       const std::string nickname); // Establece el nickname (comando NICK)
   void setUsername(
       const std::string username); // Establece el username (comando USER)
-  void setHostname(const std::string hostname); // Establece el hostname
 
   // ========================================================================
   // SETTERS - Estado de registro
   // ========================================================================
   void setIsAuthenticated(
       bool isAuthenticated); // Marca autenticación (PASS correcto)
-  void setHasPassGiven(bool hasPassGiven);       // Marca que envió PASS
   void setHasNickGiven(bool hasNickGiven);       // Marca que envió NICK
   void setHasUserGiven(const bool hasUserGiven); // Marca que envió USER
 

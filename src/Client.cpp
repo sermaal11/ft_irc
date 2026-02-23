@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:48:43 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/18 16:19:31 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/23 21:10:25 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,19 +58,11 @@ bool Client::getIsAuthenticated() const
 {
     return _isAuthenticated;
 }
-
-// Verifica si el cliente ha proporcionado la contraseña
-bool Client::getHasPassGiven() const
-{
-    return _hasPassGiven;
-}
-
 // Verifica si el cliente ha proporcionado un nickname
 bool Client::getHasNickGiven() const
 {
     return _hasNickGiven;
 }
-
 // Obtiene el contenido del buffer de entrada
 std::string Client::getInputBuffer()
 {
@@ -91,22 +83,11 @@ void Client::setUsername(const std::string username)
     _username = username;
 }
 
-// Establece el hostname del cliente
-void Client::setHostname(const std::string hostname)
-{
-    _hostname = hostname;
-}
 
 // Establece el estado de autenticación del cliente
 void Client::setIsAuthenticated(bool isAuthenticated)
 {
     _isAuthenticated = isAuthenticated;
-}
-
-// Marca si el cliente ha proporcionado la contraseña
-void Client::setHasPassGiven(bool hasPassGiven)
-{
-    _hasPassGiven = hasPassGiven;
 }
 
 // Marca si el cliente ha proporcionado un nickname
