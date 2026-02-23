@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parsing.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:10:39 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/23 10:38:00 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/23 21:05:02 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,23 +102,40 @@ void Server::proccesCommand(Client *client, std::string command) {
   }
   /*
    * Comando PING: verifica que la conexión sigue activa (keep-alive).
-   * Formato: PING :<servidor>
+   * Formato: PING <token> o PING :<token>
    * El servidor o cliente envía PING periódicamente para verificar
-   * conectividad. Pasos:
-   * 1. Extrae el parámetro del comando PING
-   * 2. Verifica que el comando sea efectivamente PING
-   * 3. Responde con "PONG" para confirmar que la conexión está viva
-   * Esto previene que la conexión se cierre por timeout de inactividad.
-   * ! TODO: mejorar la lógica, el if interno parece redundante.
+   * conectividad.
+   * Respuesta correcta según RFC: PONG :<token> o solo PONG si no hay token
    */
   else if (command == "PING") {
     std::string token = client->getInputBuffer();
-    // Limpiar espacios y \r\n del token
-    size_t end = token.find_first_of(" \r\n");
-    if (end != std::string::npos)
-      token = token.substr(0, end);
-    std::string pongReply = ":server PONG server :" + token + "\r\n";
-    ::send(client->getClientFd(), pongReply.c_str(), pongReply.length(), 0);
+    
+    // Limpiar espacios inicales
+    size_t start = token.find_first_not_of(" \t\r\n");
+    
+    if (start == std::string::npos) {
+      // Si no hay parámetro, repondemos PONG
+      std::string pongReply = "PONG\r\n";
+      ::send(client->getClientFd(), pongReply.c_str(), pongReply.length(), 0);
+    } else {
+      // Extraer token y limpiar espacios
+      size_t end = token.find_first_of("\r\n", start);
+      if (end != std::string::npos)
+        token = token.substr(start, end - start);
+      else
+        token = token.substr(start);
+      size_t lastNonSpace = token.find_last_not_of(" \t");
+      if (lastNonSpace != std::string::npos)
+        token = token.substr(0, lastNonSpace + 1);
+      // Si el token empieza por : usarlo, sino, ponerlo
+      std::string pongReply;
+      if (!token.empty() && token[0] == ':')
+        pongReply = "PONG " + token + "\r\n";
+      else
+        pongReply = "PONG :" + token + "\r\n";
+      
+      ::send(client->getClientFd(), pongReply.c_str(), pongReply.length(), 0);
+    }
   }
   /*
    * Comando PRIVMSG: envía mensajes privados a un usuario o canal.
