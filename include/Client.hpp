@@ -69,6 +69,7 @@ private:
 
   // === USER enviado ===
   bool _hasUserGiven; // USER enviado
+  bool _isRegistered; // true si ya recibió el mensaje de bienvenida (001)
 
 public:
   // ========================================================================
@@ -89,6 +90,8 @@ public:
   bool getIsAuthenticated() const; // ¿Ha enviado PASS correctamente?
   bool getHasNickGiven() const;    // ¿Ha enviado NICK?
   bool getHasUserGiven() const;    // ¿Ha enviado USER?
+  bool getIsRegistered() const;    // ¿Ha completado el registro (recibió 001)?
+  void setIsRegistered(bool val);  // Marca registro completo
 
   // ========================================================================
   // GETTERS - Buffer

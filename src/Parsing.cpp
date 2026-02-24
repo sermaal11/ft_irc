@@ -27,6 +27,16 @@
  * - PRIVMSG: envía mensajes privados (pendiente de implementación completa)
  */
 void Server::proccesCommand(Client *client, std::string command) {
+  // Comandos permitidos antes de completar el registro
+  bool preAuthCmd = (command == "PASS" || command == "NICK" ||
+                     command == "USER" || command == "QUIT" ||
+                     command == "PING");
+  if (!preAuthCmd && !client->getIsRegistered()) {
+    std::string err = ":" + _serverName + " 451 * :You have not registered\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    return;
+  }
+
   /*
    * Comando NICK: establece o cambia el nickname del cliente.
    * Formato: NICK <nickname>
@@ -38,12 +48,24 @@ void Server::proccesCommand(Client *client, std::string command) {
    */
   if (command == "NICK") {
     std::string nickname = client->extractToken();
-    client->setNickname(nickname);
-    client->setHasNickGiven(true);
-    std::cout << GREEN << "OK: NICK command found (" << nickname << ")" << RESET
-              << RED << " DELETE (DEBUG)" << RESET << "\n";
-    checkClientRegister(client);
-
+    if (nickname.empty()) {
+      std::string err = ":" + _serverName + " 431 * :No nickname given\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    } else {
+      // Verificar que el nickname no esté en uso por otro cliente
+      Client *existing = findClientByNick(nickname);
+      if (existing != NULL && existing->getClientFd() != client->getClientFd()) {
+        std::string err = ":" + _serverName + " 433 * " + nickname +
+                          " :Nickname is already in use\r\n";
+        ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      } else {
+        client->setNickname(nickname);
+        client->setHasNickGiven(true);
+        std::cout << GREEN << "OK: NICK command found (" << nickname << ")" << RESET
+                  << RED << " DELETE (DEBUG)" << RESET << "\n";
+        checkClientRegister(client);
+      }
+    }
   }
   /*
    * Comando USER: establece la información del usuario.

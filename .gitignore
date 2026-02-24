@@ -60,3 +60,6 @@ config.local
 # Dependencias externas (si usas alguna)
 external/
 libs/
+
+# Archivos de texto
+*.pdf

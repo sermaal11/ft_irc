@@ -22,7 +22,8 @@ Client::Client(int fd)
       _hasPassGiven(false),    // NO ha dado password
       _hasNickGiven(false),    // NO tiene nickname
       _inputBuffer(""),         // Buffer vacío
-	  _hasUserGiven(false)
+	  _hasUserGiven(false),
+      _isRegistered(false)      // Registro incompleto
 {
     std::cout << "Client connected with fd: " << fd << std::endl;
 }
@@ -38,6 +39,16 @@ Client::~Client()
 bool	Client::getHasUserGiven() const
 {
 	return _hasUserGiven;
+}
+
+bool Client::getIsRegistered() const
+{
+    return _isRegistered;
+}
+
+void Client::setIsRegistered(bool val)
+{
+    _isRegistered = val;
 }
 
 // Obtiene el file descriptor del cliente

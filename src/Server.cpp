@@ -62,7 +62,8 @@ void Server::sendWelcomeMessage(Client *client) {
  */
 void Server::checkClientRegister(Client *client) {
   if (client->getIsAuthenticated() && client->getHasNickGiven() &&
-      client->getHasUserGiven()) {
+      client->getHasUserGiven() && !client->getIsRegistered()) {
+    client->setIsRegistered(true);
     sendWelcomeMessage(client);
   }
 }
@@ -495,6 +496,12 @@ void Server::handleKick(Client *client, const std::string &params) {
 
   // Eliminar al usuario del canal
   channel->removeMember(target->getClientFd());
+
+  // Si el canal queda vacío, destruirlo
+  if (channel->getMemberCount() == 0) {
+    delete channel;
+    _channels.erase(it);
+  }
 }
 
 /*
@@ -701,9 +708,10 @@ void Server::handleMode(Client *client, const std::string &params) {
   }
 
   // Parsear los modos
-  bool adding = true; // true = +, false = -
-  std::string appliedModes;
-  std::string appliedParams;
+  // Separamos modos añadidos y eliminados para construir el prefijo correctamente.
+  // Ej: MODE #canal +ik-t genera "+ik-t clave", no "-ik" ni "+ikt"
+  bool adding = true;
+  std::string addedModes, removedModes, addedParams, removedParams;
 
   // Recoger todos los parámetros restantes
   std::vector<std::string> modeParams;
@@ -715,37 +723,31 @@ void Server::handleMode(Client *client, const std::string &params) {
   for (size_t i = 0; i < modeStr.length(); i++) {
     char c = modeStr[i];
 
-    if (c == '+') {
-      adding = true;
-      continue;
-    }
-    if (c == '-') {
-      adding = false;
-      continue;
-    }
+    if (c == '+') { adding = true;  continue; }
+    if (c == '-') { adding = false; continue; }
 
     switch (c) {
     case 'i':
       channel->setInviteOnly(adding);
-      appliedModes += c;
+      (adding ? addedModes : removedModes) += c;
       break;
 
     case 't':
       channel->setTopicRestricted(adding);
-      appliedModes += c;
+      (adding ? addedModes : removedModes) += c;
       break;
 
     case 'k':
       if (adding) {
         if (paramIdx < modeParams.size()) {
           channel->setKey(modeParams[paramIdx]);
-          appliedModes += c;
-          appliedParams += " " + modeParams[paramIdx];
+          addedModes  += c;
+          addedParams += " " + modeParams[paramIdx];
           paramIdx++;
         }
       } else {
         channel->setKey("");
-        appliedModes += c;
+        removedModes += c;
       }
       break;
 
@@ -753,12 +755,15 @@ void Server::handleMode(Client *client, const std::string &params) {
       if (paramIdx < modeParams.size()) {
         Client *target = findClientByNick(modeParams[paramIdx]);
         if (target && channel->isMember(target->getClientFd())) {
-          if (adding)
+          if (adding) {
             channel->addOperator(target);
-          else
+            addedModes    += c;
+            addedParams   += " " + modeParams[paramIdx];
+          } else {
             channel->removeOperator(target->getClientFd());
-          appliedModes += c;
-          appliedParams += " " + modeParams[paramIdx];
+            removedModes  += c;
+            removedParams += " " + modeParams[paramIdx];
+          }
         }
         paramIdx++;
       }
@@ -770,14 +775,14 @@ void Server::handleMode(Client *client, const std::string &params) {
           int limit = std::atoi(modeParams[paramIdx].c_str());
           if (limit > 0) {
             channel->setUserLimit(limit);
-            appliedModes += c;
-            appliedParams += " " + modeParams[paramIdx];
+            addedModes  += c;
+            addedParams += " " + modeParams[paramIdx];
           }
           paramIdx++;
         }
       } else {
         channel->setUserLimit(0);
-        appliedModes += c;
+        removedModes += c;
       }
       break;
 
@@ -791,10 +796,12 @@ void Server::handleMode(Client *client, const std::string &params) {
   }
 
   // Notificar a todos los miembros del canal si se aplicaron modos
+  std::string appliedModes;
+  if (!addedModes.empty())   appliedModes += "+" + addedModes   + addedParams;
+  if (!removedModes.empty()) appliedModes += "-" + removedModes + removedParams;
   if (!appliedModes.empty()) {
-    std::string prefix = adding ? "+" : "-";
     std::string modeMsg = ":" + client->getNickname() + " MODE " + channelName +
-                          " " + prefix + appliedModes + appliedParams + "\r\n";
+                          " " + appliedModes + "\r\n";
     channel->broadcastMessage(modeMsg, -1);
   }
 }
