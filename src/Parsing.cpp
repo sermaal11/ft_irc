@@ -28,7 +28,8 @@
 void Server::proccesCommand(Client *client, std::string command) {
   // Comandos permitidos antes de completar el registro
   bool preAuthCmd = (command == "PASS" || command == "NICK" ||
-                     command == "USER" || command == "PING");
+                     command == "USER" || command == "PING" ||
+                     command == "QUIT");
   if (!preAuthCmd && !client->getIsRegistered()) {
     std::string err = ":" + _serverName + " 451 * :You have not registered\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
@@ -216,6 +217,19 @@ void Server::proccesCommand(Client *client, std::string command) {
   } else if (command == "MODE") {
     std::string params = client->getInputBuffer();
     handleMode(client, params);
+  } else if (command == "QUIT") {
+    std::string quitMsg = client->getInputBuffer();
+    // Limpiar el mensaje: quitar espacios iniciales y ':' inicial
+    size_t start = quitMsg.find_first_not_of(" \t");
+    if (start != std::string::npos) {
+      quitMsg = quitMsg.substr(start);
+      if (!quitMsg.empty() && quitMsg[0] == ':')
+        quitMsg = quitMsg.substr(1);
+    } else {
+      quitMsg = "";
+    }
+    handleQuit(client, quitMsg);
+    return; // El cliente fue eliminado, no continuar procesando
   } else {
     std::string err = ":" + _serverName + " 421 " + client->getNickname() +
                       " " + command + " :Unknown command\r\n";

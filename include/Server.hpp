@@ -136,6 +136,9 @@ private:
   // Maneja el comando MODE: cambia modos del canal (i, t, k, o, l)
   void handleMode(Client *client, const std::string &params);
 
+  // Maneja el comando QUIT: cierra la conexión del cliente (RFC 2812)
+  void handleQuit(Client *client, const std::string &quitMessage);
+
   // Busca un cliente por nickname, retorna NULL si no existe
   Client *findClientByNick(const std::string &nickname);
 

@@ -147,6 +147,29 @@ void Server::removeClientFromChannels(Client *client, const std::string &reason)
 }
 
 /*
+ * Maneja el comando QUIT.
+ * Formato: QUIT [:mensaje]
+ * Según RFC 2812:
+ * 1. Envía ERROR al cliente antes de cerrar la conexión
+ * 2. Notifica a todos los canales y elimina al cliente de ellos
+ * 3. Cierra la conexión TCP completamente (close + delete)
+ */
+void Server::handleQuit(Client *client, const std::string &quitMessage) {
+  std::string reason = quitMessage.empty() ? "Client Quit" : quitMessage;
+
+  // Enviar ERROR al cliente antes de cerrar (RFC 2812)
+  std::string nick = client->getNickname().empty() ? "*" : client->getNickname();
+  std::string errorMsg =
+      "ERROR :Closing link (" + nick + ") [Quit: " + reason + "]\r\n";
+  ::send(client->getClientFd(), errorMsg.c_str(), errorMsg.length(), 0);
+
+  // removeClient() se encarga de:
+  // - removeClientFromChannels() con broadcast del QUIT a los demás
+  // - delete Client*, close(fd), limpiar _pollFds
+  removeClient(client->getClientFd(), reason);
+}
+
+/*
  * Maneja el comando JOIN.
  * Formato: JOIN #canal
  * Pasos:
