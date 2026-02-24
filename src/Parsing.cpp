@@ -22,15 +22,13 @@
  * - NICK: establece el nickname del cliente
  * - USER: establece el username del cliente
  * - PASS: autentica al cliente con la contraseña del servidor
- * - QUIT: desconecta al cliente del servidor
  * - PING: responde con PONG para mantener la conexión viva
  * - PRIVMSG: envía mensajes privados (pendiente de implementación completa)
  */
 void Server::proccesCommand(Client *client, std::string command) {
   // Comandos permitidos antes de completar el registro
   bool preAuthCmd = (command == "PASS" || command == "NICK" ||
-                     command == "USER" || command == "QUIT" ||
-                     command == "PING" || command == "CAP");
+                     command == "USER" || command == "PING");
   if (!preAuthCmd && !client->getIsRegistered()) {
     std::string err = ":" + _serverName + " 451 * :You have not registered\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
@@ -52,6 +50,20 @@ void Server::proccesCommand(Client *client, std::string command) {
       std::string err = ":" + _serverName + " 431 * :No nickname given\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     } else {
+      // Validar formato del nickname según RFC 1459:
+      // máx 9 chars, primer char letra, resto letras/dígitos/-[]\'`^{}
+      bool valid = nickname.length() <= 9 && std::isalpha(nickname[0]);
+      for (size_t i = 1; valid && i < nickname.length(); ++i) {
+        char c = nickname[i];
+        valid = std::isalnum(c) || c == '-' || c == '[' || c == ']' ||
+                c == '\\' || c == '\'' || c == '`' || c == '^' ||
+                c == '{' || c == '}';
+      }
+      if (!valid) {
+        std::string err = ":" + _serverName + " 432 * " + nickname +
+                          " :Erroneous nickname\r\n";
+        ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      } else {
       // Verificar que el nickname no esté en uso por otro cliente
       Client *existing = findClientByNick(nickname);
       if (existing != NULL && existing->getClientFd() != client->getClientFd()) {
@@ -81,6 +93,7 @@ void Server::proccesCommand(Client *client, std::string command) {
                   << RED << " DELETE (DEBUG)" << RESET << "\n";
         checkClientRegister(client);
       }
+      }
     }
   }
   /*
@@ -94,6 +107,12 @@ void Server::proccesCommand(Client *client, std::string command) {
    * Junto con NICK y PASS, completa el proceso de autenticación del cliente.
    */
   else if (command == "USER") {
+    if (client->getIsRegistered()) {
+      std::string err = ":" + _serverName + " 462 " + client->getNickname() +
+                        " :You may not reregister\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      return;
+    }
     std::string username = client->extractToken();
     client->setUsername(username);
     client->setHasUserGiven(true);
@@ -125,27 +144,6 @@ void Server::proccesCommand(Client *client, std::string command) {
       std::string err = ":" + _serverName + " 464 * :Password incorrect\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     }
-  }
-  /*
-   * Comando QUIT: desconecta al cliente del servidor de forma limpia.
-   * Formato: QUIT :<mensaje de despedida>
-   * El cliente solicita cerrar la conexión voluntariamente.
-   * Pasos:
-   * 1. Obtiene el file descriptor del cliente
-   * 2. Llama a removeClient() que:
-   *    - Elimina al cliente del mapa _clients
-   *    - Elimina el fd del vector _pollFds
-   *    - Cierra el socket del cliente
-   *    - Libera la memoria del objeto Client
-   */
-  else if (command == "QUIT") {
-    std::string quitReason = client->getInputBuffer();
-    if (!quitReason.empty() && quitReason[0] == ':')
-      quitReason = quitReason.substr(1);
-    if (quitReason.empty())
-      quitReason = "Client quit";
-    int fd = client->getClientFd();
-    removeClient(fd, quitReason);
   }
   /*
    * Comando PING: verifica que la conexión sigue activa (keep-alive).
@@ -224,6 +222,10 @@ void Server::proccesCommand(Client *client, std::string command) {
   } else if (command == "MODE") {
     std::string params = client->getInputBuffer();
     handleMode(client, params);
+  } else {
+    std::string err = ":" + _serverName + " 421 " + client->getNickname() +
+                      " " + command + " :Unknown command\r\n";
+    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
   }
 }
 
@@ -307,7 +309,7 @@ void Server::handleClientData(int i) {
 
     proccesCommand(client, command);
 
-    // Si el comando (ej: QUIT) eliminó al cliente, detener el loop
+    // Si el cliente fue eliminado durante el procesamiento, detener el loop
     // para evitar usar el puntero liberado (use-after-free)
     if (_clients.find(clientFd) == _clients.end())
       return;

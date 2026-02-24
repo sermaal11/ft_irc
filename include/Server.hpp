@@ -110,7 +110,7 @@ private:
   // ========================================================================
 
   // Router de comandos: identifica y ejecuta el comando recibido
-  // Comandos implementados: PASS, NICK, USER, QUIT, PING, PRIVMSG
+  // Comandos implementados: PASS, NICK, USER, PING, PRIVMSG
   void proccesCommand(Client *client, std::string command);
 
   // Maneja el comando JOIN: une al cliente a un canal

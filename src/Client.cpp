@@ -63,6 +63,12 @@ std::string Client::getNickname() const
     return _nickname;
 }
 
+// Obtiene el username del cliente
+std::string Client::getUsername() const
+{
+    return _username;
+}
+
 // Verifica si el cliente está autenticado
 bool Client::getIsAuthenticated() const
 {

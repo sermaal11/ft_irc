@@ -83,6 +83,7 @@ public:
   // ========================================================================
   int getClientFd() const;         // Retorna el file descriptor
   std::string getNickname() const; // Retorna el nickname del cliente
+  std::string getUsername() const; // Retorna el username del cliente
 
   // ========================================================================
   // GETTERS - Estado de registro

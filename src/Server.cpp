@@ -43,10 +43,25 @@ Server::~Server() {
 
 // Mensaje de bienvenido cuando un usario se conecta al server
 void Server::sendWelcomeMessage(Client *client) {
-  std::string wellmessage =
-      ":" + _serverName + " 001 " + client->getNickname() + " :Welcome to the server!\r\n";
-  ::send(client->getClientFd(), wellmessage.c_str(), wellmessage.length(), 0);
-  std::cout << GREEN << "Welcome message sent to " << client->getNickname()
+  int fd = client->getClientFd();
+  const std::string &nick = client->getNickname();
+
+  std::string msg001 = ":" + _serverName + " 001 " + nick +
+                       " :Welcome to the Internet Relay Network " +
+                       nick + "!" + client->getUsername() + "@localhost\r\n";
+  std::string msg002 = ":" + _serverName + " 002 " + nick +
+                       " :Your host is " + _serverName +
+                       ", running version 1.0\r\n";
+  std::string msg003 = ":" + _serverName + " 003 " + nick +
+                       " :This server was created 2026\r\n";
+  std::string msg004 = ":" + _serverName + " 004 " + nick + " " +
+                       _serverName + " 1.0 o itkol\r\n";
+
+  ::send(fd, msg001.c_str(), msg001.length(), 0);
+  ::send(fd, msg002.c_str(), msg002.length(), 0);
+  ::send(fd, msg003.c_str(), msg003.length(), 0);
+  ::send(fd, msg004.c_str(), msg004.length(), 0);
+  std::cout << GREEN << "Welcome message sent to " << nick
             << RESET << RED << "(DEBUG)" << RESET << "\n";
 }
 
@@ -70,8 +85,8 @@ void Server::checkClientRegister(Client *client) {
 
 /*
  * Elimina un cliente del servidor y libera sus recursos.
- * Esta función se llama cuando un cliente se desconecta (voluntariamente con
- * QUIT o por error de conexión detectado por recv()). Proceso de limpieza:
+ * Esta función se llama cuando un cliente se desconecta (por cierre de
+ * conexión o error detectado por recv()). Proceso de limpieza:
  * 1. Busca el cliente en el mapa _clients usando su file descriptor
  *    - Si lo encuentra, libera la memoria del objeto Client (delete)
  *    - Elimina la entrada del mapa _clients
@@ -108,7 +123,7 @@ void Server::removeClient(int fd, const std::string &reason) {
 /*
  * Elimina un cliente de todos los canales en los que participa.
  * Se llama desde removeClient() cuando el cliente se desconecta.
- * Notifica a los demás miembros del canal con un mensaje QUIT.
+ * Notifica a los demás miembros del canal de la desconexión.
  * Si el canal queda vacío después de eliminar al cliente, se destruye.
  */
 void Server::removeClientFromChannels(Client *client, const std::string &reason) {
