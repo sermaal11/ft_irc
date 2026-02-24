@@ -30,7 +30,7 @@ void Server::proccesCommand(Client *client, std::string command) {
   // Comandos permitidos antes de completar el registro
   bool preAuthCmd = (command == "PASS" || command == "NICK" ||
                      command == "USER" || command == "QUIT" ||
-                     command == "PING");
+                     command == "PING" || command == "CAP");
   if (!preAuthCmd && !client->getIsRegistered()) {
     std::string err = ":" + _serverName + " 451 * :You have not registered\r\n";
     ::send(client->getClientFd(), err.c_str(), err.length(), 0);
@@ -59,6 +59,22 @@ void Server::proccesCommand(Client *client, std::string command) {
                           " :Nickname is already in use\r\n";
         ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       } else {
+        if (client->getIsRegistered()) {
+          // Notificar el cambio de nick a todos los canales en los que está
+          std::string oldNick = client->getNickname();
+          std::string nickMsg = ":" + oldNick + " NICK " + nickname + "\r\n";
+          bool notified = false;
+          std::map<std::string, Channel *>::iterator chit;
+          for (chit = _channels.begin(); chit != _channels.end(); ++chit) {
+            if (chit->second->isMember(client->getClientFd())) {
+              chit->second->broadcastMessage(nickMsg, -1);
+              notified = true;
+            }
+          }
+          // Si no estaba en ningún canal, notificarse a sí mismo igualmente
+          if (!notified)
+            ::send(client->getClientFd(), nickMsg.c_str(), nickMsg.length(), 0);
+        }
         client->setNickname(nickname);
         client->setHasNickGiven(true);
         std::cout << GREEN << "OK: NICK command found (" << nickname << ")" << RESET

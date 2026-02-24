@@ -35,6 +35,8 @@
 #include <sstream>
 #include <csignal>			// signal, SIGPIPE
 
+extern volatile sig_atomic_t g_running;
+
 #define RED     "\033[1;31m"
 #define GREEN   "\033[1;32m"
 #define YELLOW  "\033[1;33m"

@@ -13,6 +13,10 @@
 #include "../include/Server.hpp"
 #include "../include/Utils.hpp"
 
+volatile sig_atomic_t g_running = 1;
+
+static void sigintHandler(int) { g_running = 0; }
+
 /*
  * Programa principal.
  * Inicia el servidor con el puerto y la contraseña proporcionados.
@@ -65,6 +69,8 @@ int main(int argc, char **argv)
 	* Se crea un objeto Server con el puerto y la contraseña proporcionados.
 	* Se inicia el servidor con el método run().
 	*/
+	signal(SIGINT, sigintHandler);
+
 	Server server(port, password);
 	server.run();
 

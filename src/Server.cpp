@@ -1009,7 +1009,7 @@ void Server::run() {
    */
 
   // ! revisar
-  while (true) {
+  while (g_running) {
     // poll( 1. Puntero -> array de fds, 2. Tamañon del array, 3. Segundos: -1:
     // Tiempo de espera indefinido.)
     int pollCount = ::poll(&_pollFds[0], _pollFds.size(), -1);
