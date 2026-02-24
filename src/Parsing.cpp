@@ -260,6 +260,11 @@ void Server::handleClientData(int i) {
 
     proccesCommand(client, command);
 
+    // Si el comando (ej: QUIT) eliminó al cliente, detener el loop
+    // para evitar usar el puntero liberado (use-after-free)
+    if (_clients.find(clientFd) == _clients.end())
+      return;
+
     // Limpiar el buffer después de procesar
     client->clearInputBuffer();
   }

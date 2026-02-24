@@ -33,6 +33,7 @@
 #include <vector>			// std::vector
 #include <map>				// STL map
 #include <sstream>
+#include <csignal>			// signal, SIGPIPE
 
 #define RED     "\033[1;31m"
 #define GREEN   "\033[1;32m"

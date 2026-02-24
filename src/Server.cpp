@@ -948,12 +948,17 @@ void Server::acceptNewClient() {
  * Crea un socket y lo configura para que escuche en el puerto especificado.
  */
 void Server::run() {
+  // Ignorar SIGPIPE: sin esto, un send() a un cliente desconectado
+  // abruptamente mataría el proceso entero.
+  signal(SIGPIPE, SIG_IGN);
+
   _serverFd = createServerSocket();
   if (_serverFd < 0)
     return;
 
   if (!bindAndListen()) {
     ::close(_serverFd);
+    _serverFd = -1; // evitar double close en el destructor
     return;
   }
 
@@ -1003,10 +1008,16 @@ void Server::run() {
         }
         // Si no, es un cliente que envia datos.
         else {
+          size_t sizeBefore = _pollFds.size();
           handleClientData(i);
+          // Si el cliente fue eliminado, _pollFds se encogió:
+          // el elemento en [i] es ahora el siguiente cliente.
+          // Decrementamos i para que el for++ no lo salte.
+          if (_pollFds.size() < sizeBefore)
+            i--;
         }
       }
     }
   }
-  ::close(_serverFd);
+  // El destructor cierra _serverFd; no lo cerramos aquí para evitar double close
 }
