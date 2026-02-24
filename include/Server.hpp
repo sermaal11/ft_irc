@@ -103,7 +103,7 @@ private:
 
   // Elimina un cliente y cierra su conexión
   // Limpia: _clients (delete), _pollFds (erase), close(fd)
-  void removeClient(int fd);
+  void removeClient(int fd, const std::string &reason = "Client disconnected");
 
   // ========================================================================
   // PROCESAMIENTO DE COMANDOS IRC
@@ -141,7 +141,7 @@ private:
 
   // Elimina un cliente de todos los canales en los que está
   // Se llama desde removeClient() al desconectarse
-  void removeClientFromChannels(Client *client);
+  void removeClientFromChannels(Client *client, const std::string &reason = "Client disconnected");
 
   // ========================================================================
   // AUTENTICACIÓN Y REGISTRO

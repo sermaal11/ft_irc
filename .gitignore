@@ -61,5 +61,6 @@ config.local
 external/
 libs/
 
-# Archivos de texto
-*.pdf
+# subject
+ft_irc.md
+eval_sheet.md

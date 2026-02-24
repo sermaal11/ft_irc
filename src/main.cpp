@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 		}
 	}
 	int port = std::atoi(argv[1]);
-	if (port < 0 || port > 65535) 
+	if (port <= 0 || port > 65535)
 	{
 		std::cerr << RED << "Invalid port number" << RESET << "\n";
 		return (1);

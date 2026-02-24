@@ -105,6 +105,9 @@ void Server::proccesCommand(Client *client, std::string command) {
     if (password == _password) {
       client->setIsAuthenticated(true);
       checkClientRegister(client);
+    } else {
+      std::string err = ":" + _serverName + " 464 * :Password incorrect\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
     }
   }
   /*
@@ -120,7 +123,13 @@ void Server::proccesCommand(Client *client, std::string command) {
    *    - Libera la memoria del objeto Client
    */
   else if (command == "QUIT") {
-    removeClient(client->getClientFd());
+    std::string quitReason = client->getInputBuffer();
+    if (!quitReason.empty() && quitReason[0] == ':')
+      quitReason = quitReason.substr(1);
+    if (quitReason.empty())
+      quitReason = "Client quit";
+    int fd = client->getClientFd();
+    removeClient(fd, quitReason);
   }
   /*
    * Comando PING: verifica que la conexión sigue activa (keep-alive).

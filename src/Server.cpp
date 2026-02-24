@@ -84,12 +84,12 @@ void Server::checkClientRegister(Client *client) {
  * Es fundamental realizar toda esta limpieza para evitar memory leaks y
  * que poll() no intente monitorizar sockets cerrados.
  */
-void Server::removeClient(int fd) {
+void Server::removeClient(int fd, const std::string &reason) {
   // buscar cliente en el mapa
   std::map<int, Client *>::iterator it = _clients.find(fd);
   if (it != _clients.end()) {
     // Eliminar al cliente de todos los canales antes de borrarlo
-    removeClientFromChannels(it->second);
+    removeClientFromChannels(it->second, reason);
     delete it->second;
     _clients.erase(it);
   }
@@ -111,10 +111,10 @@ void Server::removeClient(int fd) {
  * Notifica a los demás miembros del canal con un mensaje QUIT.
  * Si el canal queda vacío después de eliminar al cliente, se destruye.
  */
-void Server::removeClientFromChannels(Client *client) {
+void Server::removeClientFromChannels(Client *client, const std::string &reason) {
   int fd = client->getClientFd();
   std::string quitMsg =
-      ":" + client->getNickname() + " QUIT :Client disconnected\r\n";
+      ":" + client->getNickname() + " QUIT :" + reason + "\r\n";
 
   std::map<std::string, Channel *>::iterator it = _channels.begin();
   while (it != _channels.end()) {
@@ -171,7 +171,14 @@ void Server::handleJoin(Client *client) {
   bool isNew = false;
   if (_channels.find(channelName) == _channels.end()) {
     // Crear el canal si no existe
-    _channels[channelName] = new Channel(channelName);
+    try {
+      _channels[channelName] = new Channel(channelName);
+    } catch (std::bad_alloc &) {
+      std::string err = ":" + _serverName + " 403 " + client->getNickname() +
+                        " " + channelName + " :Cannot create channel\r\n";
+      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      return;
+    }
     isNew = true;
   }
 
@@ -934,7 +941,14 @@ void Server::acceptNewClient() {
   /*
    * Crear nuevo objeto cliente y ponerlo en el map clave->valor
    */
-  Client *newClient = new Client(clientFd);
+  Client *newClient;
+  try {
+    newClient = new Client(clientFd);
+  } catch (std::bad_alloc &) {
+    std::cerr << RED << "Out of memory: cannot allocate new client" << RESET << "\n";
+    ::close(clientFd);
+    return;
+  }
   _clients[clientFd] = newClient;
 
   /*
