@@ -17,14 +17,10 @@
 Channel::Channel(std::string name)
     : _name(name), _topic(""), _inviteOnly(false), _topicRestricted(false),
       _key(""), _userLimit(0) {
-  std::cout << GREEN << "Channel created: " << name << RESET << RED
-            << " (DEBUG)" << RESET << "\n";
 }
 
 // Destructor
 Channel::~Channel() {
-  std::cout << YELLOW << "Channel destroyed: " << _name << RESET << RED
-            << " (DEBUG)" << RESET << "\n";
 }
 
 // ========== GETTERS ==========

@@ -61,8 +61,6 @@ void Server::sendWelcomeMessage(Client *client) {
   ::send(fd, msg002.c_str(), msg002.length(), 0);
   ::send(fd, msg003.c_str(), msg003.length(), 0);
   ::send(fd, msg004.c_str(), msg004.length(), 0);
-  std::cout << GREEN << "Welcome message sent to " << nick
-            << RESET << RED << "(DEBUG)" << RESET << "\n";
 }
 
 /*
@@ -116,8 +114,7 @@ void Server::removeClient(int fd, const std::string &reason) {
     }
   }
   ::close(fd);
-  std::cout << YELLOW << "Client disconnected (fd=" << fd << ")" << RESET
-            << "\n";
+  std::cout << YELLOW << "[-] Client disconnected (fd=" << fd << ")" << RESET << "\n";
 }
 
 /*
@@ -273,10 +270,6 @@ void Server::handleJoin(Client *client) {
   std::string endMsg = ":" + _serverName + " 366 " + client->getNickname() + " " +
                        channelName + " :End of /NAMES list\r\n";
   ::send(client->getClientFd(), endMsg.c_str(), endMsg.length(), 0);
-
-  std::cout << GREEN << "OK: " << client->getNickname() << " joined "
-            << channelName << " (" << channel->getMemberCount() << " members)"
-            << RESET << RED << " (DEBUG)" << RESET << "\n";
 }
 
 /*
@@ -348,9 +341,6 @@ void Server::handlePrivmsg(Client *client, const std::string &params) {
 
     // Enviar a todos los miembros del canal excepto al emisor
     channel->broadcastMessage(fullMsg, client->getClientFd());
-
-    std::cout << BLUE << client->getNickname() << " -> " << target << ": "
-              << messageText << RESET << RED << " (DEBUG)" << RESET << "\n";
   }
   // === Mensaje privado ===
   else {
@@ -373,10 +363,6 @@ void Server::handlePrivmsg(Client *client, const std::string &params) {
 
     // Enviar el mensaje al destinatario
     ::send(targetClient->getClientFd(), fullMsg.c_str(), fullMsg.length(), 0);
-
-    std::cout << BLUE << client->getNickname() << " -> " << target
-              << " (PM): " << messageText << RESET << RED << " (DEBUG)" << RESET
-              << "\n";
   }
 }
 
@@ -850,8 +836,6 @@ int Server::createServerSocket() {
               << "\n";
     return (-1);
   }
-  std::cout << GREEN << "OK: socket created (fd=" << serverFd << ")" << RESET
-            << RED << " DELETE (DEBUG)" << RESET << "\n";
 
   /*
    * Configura el socket para que pueda ser reutilizado.
@@ -868,8 +852,6 @@ int Server::createServerSocket() {
     ::close(serverFd);
     return (-1);
   }
-  std::cout << GREEN << "OK: SO_REUSEADDR enabled" << RESET << RED
-            << " DELETE (DEBUG)" << RESET << "\n";
 
   /*
    * Configura el socket para que no bloquee.
@@ -885,8 +867,6 @@ int Server::createServerSocket() {
     return (-1);
   }
 
-  std::cout << GREEN << "OK: socket set to non-blocking mode" << RESET << RED
-            << " DELETE (DEBUG)" << RESET << "\n";
   return serverFd;
 }
 
@@ -914,8 +894,6 @@ bool Server::bindAndListen() {
               << "\n";
     return false;
   }
-  std::cout << GREEN << "OK: socket bound to port " << _port << RESET << RED
-            << " DELETE (DEBUG)" << RESET << "\n";
 
   /*
    * Pone el socket en modo escucha (listen).
@@ -926,8 +904,6 @@ bool Server::bindAndListen() {
               << "\n";
     return false;
   }
-  std::cout << GREEN << "OK: socket listening" << RESET << RED
-            << " DELETE (DEBUG)" << RESET << "\n";
   return true;
 }
 
@@ -978,8 +954,7 @@ void Server::acceptNewClient() {
   clientPollFd.revents = 0;
   _pollFds.push_back(clientPollFd);
 
-  std::cout << GREEN << "OK: new client connected (fd=" << clientFd << ")"
-            << RESET << RED << " DELETE (DEBUG)" << RESET << "\n";
+  std::cout << GREEN << "[+] Client connected (fd=" << clientFd << ")" << RESET << "\n";
 }
 
 /*
@@ -1001,9 +976,7 @@ void Server::run() {
     return;
   }
 
-  std::cout << GREEN << "OK: server socket created for port " << _port
-            << " (fd=" << _serverFd << ")" << RESET << RED << " DELETE (DEBUG)"
-            << RESET << "\n";
+  std::cout << GREEN << "[SERVER] Listening on port " << _port << RESET << "\n";
 
   /*
    * Añadir el socket del servidor al vector de poll

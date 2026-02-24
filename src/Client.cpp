@@ -25,13 +25,11 @@ Client::Client(int fd)
 	  _hasUserGiven(false),
       _isRegistered(false)      // Registro incompleto
 {
-    std::cout << "Client connected with fd: " << fd << std::endl;
 }
 
 // Destructor: libera recursos (el fd lo cierra Server, no Client)
 Client::~Client()
 {
-    std::cout << "Client disconnected: " << _nickname << " (fd: " << _clientFd << ")" << std::endl;
 }
 
 // ========== GETTERS ==========

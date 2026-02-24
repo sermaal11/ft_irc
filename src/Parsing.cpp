@@ -89,8 +89,6 @@ void Server::proccesCommand(Client *client, std::string command) {
         }
         client->setNickname(nickname);
         client->setHasNickGiven(true);
-        std::cout << GREEN << "OK: NICK command found (" << nickname << ")" << RESET
-                  << RED << " DELETE (DEBUG)" << RESET << "\n";
         checkClientRegister(client);
       }
       }
@@ -116,8 +114,6 @@ void Server::proccesCommand(Client *client, std::string command) {
     std::string username = client->extractToken();
     client->setUsername(username);
     client->setHasUserGiven(true);
-    std::cout << GREEN << "OK: USER command found " << username << RESET << RED
-              << " DELETE (DEBUG)" << RESET << "\n";
     checkClientRegister(client);
   }
   /*
@@ -135,8 +131,6 @@ void Server::proccesCommand(Client *client, std::string command) {
    */
   else if (command == "PASS") {
     std::string password = client->extractToken();
-    std::cout << GREEN << "OK: Password command found" << password << RESET
-              << RED << " DELETE (DEBUG)" << RESET << "\n";
     if (password == _password) {
       client->setIsAuthenticated(true);
       checkClientRegister(client);
@@ -250,21 +244,13 @@ void Server::handleClientData(int i) {
 
   // Cliente desconectado o error
   if (bytesRead <= 0) {
-    if (bytesRead == 0)
-      std::cout << YELLOW << "Client disconnected (fd=" << _pollFds[i].fd << ")"
-                << RESET << "\n";
-    else
-      std::cerr << RED << "recv() failed: " << std::strerror(errno) << RESET
-                << "\n";
-
+    if (bytesRead != 0)
+      std::cerr << RED << "recv() failed: " << std::strerror(errno) << RESET << "\n";
     removeClient(clientFd);
     return;
   }
   Client *client = _clients[clientFd];
-  // Mostrar datos recibidos
   buffer[bytesRead] = '\0';
-  std::cout << CYAN << "Received from fd " << _pollFds[i].fd << ": " << buffer
-            << RESET;
   client->addToBuffer(buffer);
   while (client->hasAllCommand()) {
     // Extrae LÍNEA COMPLETA (sin \r\n)
@@ -275,9 +261,6 @@ void Server::handleClientData(int i) {
     if (line.empty())
       continue;
 
-    std::cout << CYAN << "Command line from fd=" << clientFd << ": [" << line
-              << "]" << RESET << "\n";
-
     // Parsear la línea con istringstream
     std::istringstream iss(line);
     std::string command;
@@ -286,9 +269,6 @@ void Server::handleClientData(int i) {
     // Ignorar si no hay comando
     if (command.empty())
       continue;
-
-    std::cout << CYAN << "Command detected: [" << command << "]" << RESET
-              << "\n";
 
     // Extraer el resto de la línea (todos los parámetros)
     std::string restOfLine;
