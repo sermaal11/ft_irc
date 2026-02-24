@@ -12,6 +12,7 @@
 
 #include "../include/Server.hpp"
 #include "../include/Utils.hpp"
+#include <algorithm>  // std::min
 
 
 /*

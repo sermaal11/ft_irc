@@ -1014,8 +1014,10 @@ void Server::run() {
     // Tiempo de espera indefinido.)
     int pollCount = ::poll(&_pollFds[0], _pollFds.size(), -1);
     if (pollCount < 0) {
-      std::cerr << RED << "poll() failed: " << std::strerror(errno) << RESET
-                << "\n";
+      // EINTR: poll() interrumpido por señal (ej: SIGINT) — salida limpia
+      if (errno != EINTR)
+        std::cerr << RED << "poll() failed: " << std::strerror(errno) << RESET
+                  << "\n";
       break;
     }
     /*
@@ -1024,8 +1026,10 @@ void Server::run() {
      */
 
     for (size_t i = 0; i < _pollFds.size(); i++) {
-      // Verificamos si hay eventos en el fd del server
-      if (_pollFds[i].revents & POLLIN) {
+      // En Linux, POLLHUP/POLLERR pueden llegar sin POLLIN cuando un cliente
+      // se desconecta abruptamente. Los tratamos igual que datos: handleClientData
+      // llamará a recv() que devolverá 0 o -1 y disparará removeClient().
+      if (_pollFds[i].revents & (POLLIN | POLLHUP | POLLERR)) {
         // Si es el socket del server, es una nueva conexion
         if (_pollFds[i].fd == _serverFd) {
           acceptNewClient();
