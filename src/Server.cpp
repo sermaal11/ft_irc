@@ -170,15 +170,18 @@ void Server::handleJoin(Client *client) {
   // Verificar si el canal ya existe
   bool isNew = false;
   if (_channels.find(channelName) == _channels.end()) {
-    // Crear el canal si no existe
+    // Crear el canal si no existe — asignar a temporal primero para que
+    // si new lanza, el mapa no quede con un nullptr huérfano
+    Channel *newChan;
     try {
-      _channels[channelName] = new Channel(channelName);
+      newChan = new Channel(channelName);
     } catch (std::bad_alloc &) {
       std::string err = ":" + _serverName + " 403 " + client->getNickname() +
                         " " + channelName + " :Cannot create channel\r\n";
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       return;
     }
+    _channels[channelName] = newChan;
     isNew = true;
   }
 
