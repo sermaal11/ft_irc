@@ -8,7 +8,8 @@ SRC =	    src/main.cpp \
 			src/Client.cpp \
 			src/Channel.cpp \
 			src/Parsing.cpp \
-			src/Parsing_Utils.cpp
+			src/Parsing_Utils.cpp \
+			src/Bot.cpp
 
 OBJS = $(notdir $(SRC:.cpp=.o))
 OBJDIR = irc_obj

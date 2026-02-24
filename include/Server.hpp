@@ -72,6 +72,9 @@ private:
   // === CANALES ===
   std::map<std::string, Channel *> _channels; // nombre -> Channel*
 
+  // === BOT MODERADOR ===
+  std::map<int, int> _botWarnings; // fd -> nº de strikes
+
   // ========================================================================
   // INICIALIZACIÓN DEL SERVIDOR
   // ========================================================================
@@ -141,6 +144,17 @@ private:
 
   // Busca un cliente por nickname, retorna NULL si no existe
   Client *findClientByNick(const std::string &nickname);
+
+  // ========================================================================
+  // BOT MODERADOR (server-side, invisible)
+  // ========================================================================
+
+  // Comprueba si un mensaje contiene palabras prohibidas
+  bool botCheckBadWords(const std::string &message);
+
+  // Procesa un mensaje a través del bot. Retorna true si fue bloqueado
+  bool botProcessMessage(Client *client, Channel *channel,
+                         const std::string &target, const std::string &message);
 
   // Elimina un cliente de todos los canales en los que está
   // Se llama desde removeClient() al desconectarse

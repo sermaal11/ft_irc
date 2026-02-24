@@ -106,6 +106,8 @@ void Server::removeClient(int fd, const std::string &reason) {
     delete it->second;
     _clients.erase(it);
   }
+  // Limpiar strikes del bot
+  _botWarnings.erase(fd);
   // buscar cliente en el vector de poll
   for (size_t i = 0; i < _pollFds.size(); i++) {
     if (_pollFds[i].fd == fd) {
@@ -361,6 +363,10 @@ void Server::handlePrivmsg(Client *client, const std::string &params) {
       ::send(client->getClientFd(), err.c_str(), err.length(), 0);
       return;
     }
+
+    // === ModBot: filtrar palabras malsonantes ===
+    if (botProcessMessage(client, channel, target, messageText))
+      return; // Mensaje bloqueado por el bot
 
     // Enviar a todos los miembros del canal excepto al emisor
     channel->broadcastMessage(fullMsg, client->getClientFd());
