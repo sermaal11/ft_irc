@@ -6,13 +6,24 @@
 /*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 09:13:18 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/05 16:57:07 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/25 11:19:05 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
 #include "../include/Utils.hpp"
 
+/*
+* Manejo de señales.
+* g_running es una variable global que se utiliza para indicar si el servidor
+* debe seguir ejecutándose.
+* sigintHandler es una función que se ejecuta cuando se recibe una señal SIGINT.
+* SIGINT es una señal que se envía al proceso cuando se presiona Ctrl+C.
+* signal() es una función que se utiliza para registrar una función de manejo de señales.
+* volatile es un calificador que indica que la variable puede ser modificada por
+* factores externos al programa.
+* sig_atomic_t es un tipo de dato que indica que la variable es atómica.
+*/
 volatile sig_atomic_t g_running = 1;
 
 static void sigintHandler(int) { g_running = 0; }

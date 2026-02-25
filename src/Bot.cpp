@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Bot.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
+/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/24 21:21:00 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/24 21:21:00 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/25 12:29:28 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ static const char *badWordsArr[] = {
     "damn", "whore", "slut", "motherfucker", "bullshit", "dumbass",
     "jackass", "nigger", "nigga", "faggot", "retard", "moron",
     "wanker", "twat", "prick", "arsehole", "bellend", "tosser",
-    "cocksucker", "dipshit", "shithead", "douchebag", "therian"
+    "cocksucker", "dipshit", "shithead", "douchebag", "therian", "furry"
 };
 static const size_t badWordsCount = sizeof(badWordsArr) / sizeof(badWordsArr[0]);
 

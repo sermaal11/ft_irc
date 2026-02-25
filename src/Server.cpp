@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
+/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/23 23:29:25 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/25 11:22:08 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1025,7 +1025,6 @@ void Server::run() {
    * -1: timeout infinito
    */
 
-  // ! revisar
   while (g_running) {
     // poll( 1. Puntero -> array de fds, 2. Tamañon del array, 3. Segundos: -1:
     // Tiempo de espera indefinido.)
