@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: jdelorme <jdelorme@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 09:13:18 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/25 11:19:05 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/25 16:05:16 by jdelorme         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,17 +15,6 @@
 #include <csignal>
 #include <cstring>
 
-/*
-* Manejo de señales.
-* g_running es una variable global que se utiliza para indicar si el servidor
-* debe seguir ejecutándose.
-* sigintHandler es una función que se ejecuta cuando se recibe una señal SIGINT.
-* SIGINT es una señal que se envía al proceso cuando se presiona Ctrl+C.
-* sigaction() es la función recomendada en POSIX para registrar señales de forma segura.
-* volatile es un calificador que indica que la variable puede ser modificada por
-* factores externos al programa.
-* sig_atomic_t es un tipo de dato que indica que la variable es atómica.
-*/
 volatile sig_atomic_t g_running = 1;
 
 static void sigintHandler(int) { 
@@ -38,21 +27,12 @@ static void sigintHandler(int) {
  */
 int main(int argc, char **argv) 
 {
-	/*
-	* Validación de los argumentos del programa.
-	* El servidor debe iniciarse con exactamente dos argumentos:
-	* un puerto de escucha y una contraseña de conexión.
-	*/
+
 	if (argc != 3) 
 	{
 		std::cerr << RED << "ERROR: Usage -> ./ft_irc <port> <password>" << RESET << "\n";
 		return (1);
 	}
-
-	/*
-	* Validación del puerto.
-	* El puerto debe ser un número entero entre 0 y 65535.
-	*/
 	for (size_t i = 0; argv[1][i]; i++) 
 	{
 		if (!isdigit(argv[1][i])) 
@@ -68,28 +48,17 @@ int main(int argc, char **argv)
 		return (1);
 	}
 
-	/*
-	* Validación de la contraseña.
-	* La contraseña debe ser una cadena de caracteres no vacía.
-	*/
 	std::string password = argv[2];
 	if (password.empty()) 
 	{
 		std::cerr << RED << "Invalid password" << RESET << "\n";
 		return (1);
 	}
-
-	/*
-	* Inicialización del servidor.
-	* Se crea un objeto Server con el puerto y la contraseña proporcionados.
-	* Se inicia el servidor con el método run().
-	* Usamos sigaction() en lugar de signal() para un manejo seguro de señales en Linux.
-	*/
 	struct sigaction sa;
 	std::memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = sigintHandler;
 	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART; // Reintentar syscalls interrumpidas automáticamente
+	sa.sa_flags = SA_RESTART;
 	
 	if (sigaction(SIGINT, &sa, NULL) == -1) 
 	{
