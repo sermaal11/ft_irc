@@ -12,6 +12,8 @@
 
 #include "../include/Server.hpp"
 #include "../include/Utils.hpp"
+#include <csignal>
+#include <cstring>
 
 /*
 * Manejo de señales.
@@ -19,14 +21,16 @@
 * debe seguir ejecutándose.
 * sigintHandler es una función que se ejecuta cuando se recibe una señal SIGINT.
 * SIGINT es una señal que se envía al proceso cuando se presiona Ctrl+C.
-* signal() es una función que se utiliza para registrar una función de manejo de señales.
+* sigaction() es la función recomendada en POSIX para registrar señales de forma segura.
 * volatile es un calificador que indica que la variable puede ser modificada por
 * factores externos al programa.
 * sig_atomic_t es un tipo de dato que indica que la variable es atómica.
 */
 volatile sig_atomic_t g_running = 1;
 
-static void sigintHandler(int) { g_running = 0; }
+static void sigintHandler(int) { 
+	g_running = 0;
+}
 
 /*
  * Programa principal.
@@ -79,8 +83,19 @@ int main(int argc, char **argv)
 	* Inicialización del servidor.
 	* Se crea un objeto Server con el puerto y la contraseña proporcionados.
 	* Se inicia el servidor con el método run().
+	* Usamos sigaction() en lugar de signal() para un manejo seguro de señales en Linux.
 	*/
-	signal(SIGINT, sigintHandler);
+	struct sigaction sa;
+	std::memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = sigintHandler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART; // Reintentar syscalls interrumpidas automáticamente
+	
+	if (sigaction(SIGINT, &sa, NULL) == -1) 
+	{
+		std::cerr << RED << "Failed to set up signal handler" << RESET << "\n";
+		return (1);
+	}
 
 	Server server(port, password);
 	server.run();

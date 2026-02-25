@@ -3,16 +3,19 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
+/*   By: jdelorme <jdelorme@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/25 13:23:52 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/25 15:59:16 by jdelorme         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/Server.hpp"
 #include "../include/Channel.hpp"
 #include "../include/Utils.hpp"
+
+// Declaración externa de la variable global de señal definida en main.cpp
+extern volatile sig_atomic_t g_running;
 
 /* Initializes the server with the given port and password. */
 Server::Server(int port, std::string &password)
@@ -833,14 +836,18 @@ void Server::run() {
 
   while (g_running) {
     int pollCount = ::poll(&_pollFds[0], _pollFds.size(), -1);
+    
+    // Si poll() fue interrumpido por una señal (SIGINT), salir limpiamente
     if (pollCount < 0) {
-      // EINTR means poll() was interrupted by a signal (e.g. SIGINT) — clean exit
-      if (errno != EINTR)
-        std::cerr << RED << "poll() failed: " << std::strerror(errno) << RESET << "\n";
+      if (errno == EINTR) {
+        // Señal recibida - verificar g_running y salir si es necesario
+        continue;
+      }
+      std::cerr << RED << "poll() failed: " << std::strerror(errno) << RESET << "\n";
       break;
     }
 
-    for (size_t i = 0; i < _pollFds.size(); i++) {
+    for (size_t i = 0; i < _pollFds.size() && g_running; i++) {
       if (_pollFds[i].revents & (POLLIN | POLLHUP | POLLERR)) {
         if (_pollFds[i].fd == _serverFd) {
           acceptNewClient();
@@ -855,4 +862,16 @@ void Server::run() {
       }
     }
   }
+  
+  // Cerrar todas las conexiones de clientes limpiamente antes de salir
+  std::cout << YELLOW << "\n[SERVER] Shutting down gracefully..." << RESET << "\n";
+  std::map<int, Client *>::iterator it = _clients.begin();
+  while (it != _clients.end()) {
+    std::string errorMsg = "ERROR :Server shutting down\r\n";
+    ::send(it->first, errorMsg.c_str(), errorMsg.length(), 0);
+    ::close(it->first);
+    delete it->second;
+    _clients.erase(it++);
+  }
+  std::cout << GREEN << "[SERVER] All clients disconnected cleanly." << RESET << "\n";
 }
