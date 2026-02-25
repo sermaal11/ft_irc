@@ -54,14 +54,6 @@ Example:
 ./ircserv 6667 mypassword
 ```
 
-### Connecting with HexChat
-
-1. Open HexChat and go to **Settings → Network List**
-2. Click **Add** and name the network (e.g. `ft_irc`)
-3. Set the server address to `127.0.0.1/6667`
-4. Under **Connect commands**, add: `PASS mypassword`
-5. Connect — HexChat will send PASS, NICK and USER automatically
-
 ### Testing with nc
 
 To verify that partial data is handled correctly:
@@ -71,6 +63,55 @@ nc -C 127.0.0.1 6667
 ```
 
 Type commands fragment by fragment using `Ctrl+D` to flush without a newline. The server reassembles all fragments before processing.
+
+---
+
+## Supported Commands
+
+The server implements the following IRC commands:
+
+### Connection and Registration
+
+| Command | Format | Description |
+|---------|--------|-------------|
+| `PASS` | `PASS <password>` | Authenticate with the server password (must be sent first) |
+| `NICK` | `NICK <nickname>` | Set or change your nickname |
+| `USER` | `USER <username> <hostname> <servername> <realname>` | Set user information (sent once during registration) |
+| `PING` | `PING <server>` | Test connection; server replies with PONG |
+| `QUIT` | `QUIT [<message>]` | Disconnect from the server |
+
+### Messaging
+
+| Command | Format | Description |
+|---------|--------|-------------|
+| `PRIVMSG` | `PRIVMSG <target> :<message>` | Send a message to a user or channel |
+
+### Channel Operations
+
+| Command | Format | Description |
+|---------|--------|-------------|
+| `JOIN` | `JOIN <#channel> [<key>]` | Join a channel (creates it if it doesn't exist) |
+| `PART` | `PART <#channel> [<message>]` | Leave a channel |
+| `KICK` | `KICK <#channel> <user> [<reason>]` | Remove a user from a channel (operator only) |
+| `INVITE` | `INVITE <nickname> <#channel>` | Invite a user to a channel (operator only) |
+| `TOPIC` | `TOPIC <#channel> [<new topic>]` | View or set the channel topic |
+
+### Channel Modes
+
+| Command | Format | Description |
+|---------|--------|-------------|
+| `MODE` | `MODE <#channel> +i` | Set invite-only mode |
+| `MODE` | `MODE <#channel> -i` | Remove invite-only mode |
+| `MODE` | `MODE <#channel> +t` | Set topic restricted mode (only operators can change topic) |
+| `MODE` | `MODE <#channel> -t` | Remove topic restricted mode |
+| `MODE` | `MODE <#channel> +k <key>` | Set channel password/key |
+| `MODE` | `MODE <#channel> -k` | Remove channel password/key |
+| `MODE` | `MODE <#channel> +o <nickname>` | Grant operator privileges to a user |
+| `MODE` | `MODE <#channel> -o <nickname>` | Remove operator privileges from a user |
+| `MODE` | `MODE <#channel> +l <limit>` | Set user limit for the channel |
+| `MODE` | `MODE <#channel> -l` | Remove user limit |
+
+**Note:** The first user to join a channel becomes its operator automatically.
 
 ---
 
