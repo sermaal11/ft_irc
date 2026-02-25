@@ -18,173 +18,96 @@
 #include "Utils.hpp"
 
 /*
- * ============================================================================
- * Clase Server
- * ============================================================================
- * Implementa un servidor IRC completo que gestiona múltiples clientes
- * conectados simultáneamente utilizando sockets TCP y multiplexación con
- * poll().
+ * IRC server: manages multiple clients via TCP sockets and poll().
  *
- * Flujo de trabajo del servidor:
- * 1. Crear socket del servidor (socket, setsockopt, fcntl)
- * 2. Vincular a puerto y escuchar (bind, listen)
- * 3. Loop principal con poll() esperando eventos
- * 4. Aceptar nuevos clientes (accept)
- * 5. Procesar datos de clientes existentes (recv)
- * 6. Gestionar registro y autenticación IRC (PASS, NICK, USER)
- *
- * ============================================================================
- * ATRIBUTOS PRIVADOS:
- * ============================================================================
- *
- * === Configuración del servidor ===
- * _port            : Puerto en el que escucha el servidor (ej: 6667)
- * _password        : Contraseña requerida para conectarse (comando PASS)
- *
- * === Conexión y sockets ===
- * _serverFd        : File descriptor del socket principal del servidor
- * _pollFds         : Vector de estructuras pollfd para monitorizar eventos
- *                    con poll(). Incluye el fd del servidor + todos los
- * clientes
- *
- * === Gestión de clientes ===
- * _clients         : Mapa que relaciona file descriptors con objetos Client*
- *                    Permite acceso rápido a cualquier cliente por su fd
- *
- * ============================================================================
- * MÉTODOS PRIVADOS:
- * ============================================================================
+ * _port        : Listening port (typically 6667)
+ * _password    : Required password for PASS command
+ * _serverName  : Server name used in IRC responses
+ * _serverFd    : Main server socket fd
+ * _pollFds     : Monitored fds (server + all clients)
+ * _clients     : fd -> Client* map
+ * _channels    : name -> Channel* map
+ * _botWarnings : fd -> strike count for the mod bot
  */
 class Server {
 private:
-  // === CONFIGURACIÓN ===
-  int _port;             // Puerto del servidor (6667 típicamente)
-  std::string _password; // Contraseña para PASS
-  std::string _serverName; // Nombre del servidor (ej: "ft_irc")
+  int _port;
+  std::string _password;
+  std::string _serverName;
 
-  // === CONEXIÓN ===
-  int _serverFd;                // Socket principal del servidor
-  std::vector<pollfd> _pollFds; // FDs monitorizados por poll()
+  int _serverFd;
+  std::vector<pollfd> _pollFds;
 
-  // === CLIENTES ===
-  std::map<int, Client *> _clients; // fd -> Client*
+  std::map<int, Client *> _clients;
+  std::map<std::string, Channel *> _channels;
+  std::map<int, int> _botWarnings;
 
-  // === CANALES ===
-  std::map<std::string, Channel *> _channels; // nombre -> Channel*
-
-  // === BOT MODERADOR ===
-  std::map<int, int> _botWarnings; // fd -> nº de strikes
-
-  // ========================================================================
-  // INICIALIZACIÓN DEL SERVIDOR
-  // ========================================================================
-
-  // Crea el socket del servidor (socket, setsockopt, fcntl)
-  // Configura: SO_REUSEADDR y O_NONBLOCK
-  // Retorna: fd del socket o -1 si error
+  // Creates TCP socket with SO_REUSEADDR and O_NONBLOCK; returns fd or -1
   int createServerSocket();
 
-  // Vincula el socket a una dirección y lo pone en modo escucha
-  // Usa: bind() con INADDR_ANY, listen() con SOMAXCONN
-  // Retorna: true si éxito, false si error
+  // Binds socket to INADDR_ANY:_port and starts listening; returns false on error
   bool bindAndListen();
 
-  // ========================================================================
-  // GESTIÓN DE CONEXIONES
-  // ========================================================================
-
-  // Acepta una nueva conexión de cliente
-  // Usa: accept(), fcntl(O_NONBLOCK)
-  // Crea: nuevo objeto Client y lo añade a _clients y _pollFds
+  // Accepts a new client connection and registers it in _clients and _pollFds
   void acceptNewClient();
 
-  // Procesa datos recibidos de un cliente
-  // Parámetro i: índice en _pollFds (NO el fd directamente)
-  // Usa: recv() para leer datos, addToBuffer(), extractCommand()
-  // Llama: proccesCommand() para cada comando completo
+  // Reads data from client at _pollFds[i]; buffers and dispatches complete commands
   void handleClientData(int i);
 
-  // Elimina un cliente y cierra su conexión
-  // Limpia: _clients (delete), _pollFds (erase), close(fd)
+  // Closes client connection and frees all associated resources
   void removeClient(int fd, const std::string &reason = "Client disconnected");
 
-  // ========================================================================
-  // PROCESAMIENTO DE COMANDOS IRC
-  // ========================================================================
-
-  // Router de comandos: identifica y ejecuta el comando recibido
-  // Comandos implementados: PASS, NICK, USER, PING, PRIVMSG
+  // Routes a parsed IRC command to the appropriate handler
   void proccesCommand(Client *client, std::string command);
 
-  // Maneja el comando JOIN: une al cliente a un canal
-  // Si el canal no existe, lo crea y hace al cliente operador
+  // JOIN: adds client to channel, creates it if new (client becomes operator)
   void handleJoin(Client *client);
 
-  // Maneja el comando PRIVMSG: envía mensajes a canales o usuarios
-  // Recibe la línea completa de parámetros (target + mensaje)
+  // PRIVMSG: sends message to a channel or directly to a user
   void handlePrivmsg(Client *client, const std::string &params);
 
-  // Maneja el comando PART: sale de un canal
+  // PART: removes client from a channel and notifies remaining members
   void handlePart(Client *client, const std::string &params);
 
-  // Maneja el comando KICK: expulsa a un usuario del canal (requiere operador)
+  // KICK: operator-only expulsion of a user from a channel
   void handleKick(Client *client, const std::string &params);
 
-  // Maneja el comando INVITE: invita a un usuario al canal (requiere operador)
+  // INVITE: adds a nick to the channel invite list (operator-only if +i)
   void handleInvite(Client *client, const std::string &params);
 
-  // Maneja el comando TOPIC: muestra o cambia el tema del canal
+  // TOPIC: shows or changes the channel topic (operator-only if +t)
   void handleTopic(Client *client, const std::string &params);
 
-  // Maneja el comando MODE: cambia modos del canal (i, t, k, o, l)
+  // MODE: sets or clears channel modes i, t, k, o, l
   void handleMode(Client *client, const std::string &params);
 
-  // Maneja el comando QUIT: cierra la conexión del cliente (RFC 2812)
+  // QUIT: sends ERROR to client then removes it cleanly (RFC 2812)
   void handleQuit(Client *client, const std::string &quitMessage);
 
-  // Busca un cliente por nickname, retorna NULL si no existe
+  // Returns client pointer by nickname, or NULL if not found
   Client *findClientByNick(const std::string &nickname);
 
-  // ========================================================================
-  // BOT MODERADOR (server-side, invisible)
-  // ========================================================================
-
-  // Comprueba si un mensaje contiene palabras prohibidas
+  // Returns true if message contains a banned word (case-insensitive)
   bool botCheckBadWords(const std::string &message);
 
-  // Procesa un mensaje a través del bot. Retorna true si fue bloqueado
+  // Applies bot strike logic; returns true if message was blocked
   bool botProcessMessage(Client *client, Channel *channel,
                          const std::string &target, const std::string &message);
 
-  // Elimina un cliente de todos los canales en los que está
-  // Se llama desde removeClient() al desconectarse
+  // Removes client from all channels, notifying members and deleting empty channels
   void removeClientFromChannels(Client *client, const std::string &reason = "Client disconnected");
 
-  // ========================================================================
-  // AUTENTICACIÓN Y REGISTRO
-  // ========================================================================
-
-  // Verifica si el cliente completó el registro (PASS + NICK + USER)
-  // Si está completo, envía mensaje de bienvenida
+  // Checks if PASS+NICK+USER are complete; sends welcome (001) if so
   void checkClientRegister(Client *client);
 
-  // Envía mensaje de bienvenida IRC (código 001)
-  // Formato: ":server 001 nickname :Welcome..."
+  // Sends IRC welcome sequence (001-004) to a newly registered client
   void sendWelcomeMessage(Client *client);
 
 public:
-  // ========================================================================
-  // CONSTRUCTOR Y DESTRUCTOR
-  // ========================================================================
   Server(int port, std::string &password);
   ~Server();
 
-  // ========================================================================
-  // EJECUCIÓN DEL SERVIDOR
-  // ========================================================================
-
-  // Inicia el servidor y el bucle principal de eventos
-  // Llama: createServerSocket(), bindAndListen(), poll() en loop
+  // Starts the server: creates socket, binds, then enters the poll() event loop
   void run();
 };
 

@@ -12,119 +12,117 @@
 
 #include "../include/Client.hpp"
 
-// Constructor: inicializa el cliente recién conectado
-Client::Client(int fd) 
+/* Initializes a newly connected client; all registration flags start false. */
+Client::Client(int fd)
     : _clientFd(fd),
-      _nickname(""),           // Sin nickname aún
-      _username(""),           // Sin username aún
-      _hostname(""),           // Sin hostname aún
-      _isAuthenticated(false), // NO está autenticado
-      _hasPassGiven(false),    // NO ha dado password
-      _hasNickGiven(false),    // NO tiene nickname
-      _inputBuffer(""),         // Buffer vacío
-	  _hasUserGiven(false),
-      _isRegistered(false)      // Registro incompleto
+      _nickname(""),
+      _username(""),
+      _hostname(""),
+      _isAuthenticated(false),
+      _hasPassGiven(false),
+      _hasNickGiven(false),
+      _inputBuffer(""),
+      _hasUserGiven(false),
+      _isRegistered(false)
 {
 }
 
-// Destructor: libera recursos (el fd lo cierra Server, no Client)
+/* Destructor. The fd is closed by Server, not here. */
 Client::~Client()
 {
 }
 
-// ========== GETTERS ==========
-
-bool	Client::getHasUserGiven() const
+/* Returns true if USER has been sent. */
+bool Client::getHasUserGiven() const
 {
 	return _hasUserGiven;
 }
 
+/* Returns true if the welcome (001) has been sent to this client. */
 bool Client::getIsRegistered() const
 {
     return _isRegistered;
 }
 
+/* Marks the client as fully registered. */
 void Client::setIsRegistered(bool val)
 {
     _isRegistered = val;
 }
 
-// Obtiene el file descriptor del cliente
+/* Returns the socket file descriptor. */
 int Client::getClientFd() const
 {
     return _clientFd;
 }
 
-// Obtiene el nickname del cliente
+/* Returns the client's current nickname. */
 std::string Client::getNickname() const
 {
     return _nickname;
 }
 
-// Obtiene el username del cliente
+/* Returns the client's username. */
 std::string Client::getUsername() const
 {
     return _username;
 }
 
-// Verifica si el cliente está autenticado
+/* Returns true if PASS was sent and matched the server password. */
 bool Client::getIsAuthenticated() const
 {
     return _isAuthenticated;
 }
-// Verifica si el cliente ha proporcionado un nickname
+
+/* Returns true if NICK has been sent. */
 bool Client::getHasNickGiven() const
 {
     return _hasNickGiven;
 }
-// Obtiene el contenido del buffer de entrada
+
+/* Returns the raw content of the input buffer. */
 std::string Client::getInputBuffer()
 {
     return _inputBuffer;
 }
 
-// ========== SETTERS ==========
-
-// Establece el nickname del cliente
+/* Sets the client's nickname. */
 void Client::setNickname(const std::string nickname)
 {
     _nickname = nickname;
 }
 
-// Establece el username del cliente
+/* Sets the client's username. */
 void Client::setUsername(const std::string username)
 {
     _username = username;
 }
 
-
-// Establece el estado de autenticación del cliente
+/* Sets the authentication state (true after correct PASS). */
 void Client::setIsAuthenticated(bool isAuthenticated)
 {
     _isAuthenticated = isAuthenticated;
 }
 
-// Marca si el cliente ha proporcionado un nickname
+/* Marks whether NICK has been provided. */
 void Client::setHasNickGiven(bool hasNickGiven)
 {
     _hasNickGiven = hasNickGiven;
 }
 
-// ========== BUFFER ==========
-
-// Establece el contenido del buffer de entrada
+/* Replaces the entire input buffer content. */
 void Client::setInputBuffer(const std::string inputBuffer)
 {
     _inputBuffer = inputBuffer;
 }
 
-// Limpia el buffer de entrada después de procesarlo
+/* Clears the input buffer. */
 void Client::clearInputBuffer()
 {
     _inputBuffer.clear();
 }
 
-// Marca si el cliente ha enviado el comando USER
+/* Marks whether USER has been provided. */
 void Client::setHasUserGiven(const bool hasUserGiven)
 {
     _hasUserGiven = hasUserGiven;

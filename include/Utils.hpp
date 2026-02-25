@@ -11,10 +11,7 @@
 /* ************************************************************************** */
 
 
-/*
-* Incluye todas las librerías necesarias para el servidor.
-* Incluye las definiciones de constantes y macros necesarias para el servidor.
-*/
+/* Common includes, ANSI color macros, and the global shutdown flag. */
 #ifndef UTILS_HPP
 # define UTILS_HPP
 

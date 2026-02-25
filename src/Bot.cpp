@@ -14,20 +14,13 @@
 #include "../include/Channel.hpp"
 
 /*
- * ============================================================================
- * ModBot — Bot moderador server-side (invisible)
- * ============================================================================
- * Filtra palabras malsonantes en mensajes de canales.
- * Sistema de 3 strikes:
- *   Strike 1-2: Warning al usuario, mensaje bloqueado
- *   Strike 3:   KICK automático del canal + reset de strikes
- *
- * El bot NO es un cliente real — el servidor fabrica mensajes con
- * el prefijo :ModBot para simular su presencia.
- * ============================================================================
+ * ModBot — server-side invisible moderator bot.
+ * Filters banned words in channel messages with a 3-strike system:
+ *   Strike 1-2 : private warning to the user, message blocked.
+ *   Strike 3   : KICK from the channel, strikes reset to 0.
+ * Messages are fabricated with ":ModBot" prefix; the bot is not a real client.
  */
 
-// Lista de palabras prohibidas (case-insensitive)
 static const char *badWordsArr[] = {
     "mierda", "puta", "joder", "cabron", "gilipollas",
     "hijo de puta", "hostia", "culo", "polla", "capullo",
@@ -43,10 +36,7 @@ static const char *badWordsArr[] = {
 };
 static const size_t badWordsCount = sizeof(badWordsArr) / sizeof(badWordsArr[0]);
 
-/*
- * Convierte un string a minúsculas para comparación case-insensitive.
- * Compatible con C++98 (sin std::transform con ::tolower).
- */
+/* Converts a string to lowercase for case-insensitive comparisons. */
 static std::string toLower(const std::string &str) {
   std::string result = str;
   for (size_t i = 0; i < result.length(); i++)
@@ -54,10 +44,7 @@ static std::string toLower(const std::string &str) {
   return result;
 }
 
-/*
- * Comprueba si un mensaje contiene alguna palabra prohibida.
- * Retorna true si se detecta lenguaje inapropiado.
- */
+/* Returns true if message contains any banned word (case-insensitive). */
 bool Server::botCheckBadWords(const std::string &message) {
   std::string lower = toLower(message);
   for (size_t i = 0; i < badWordsCount; i++) {
@@ -68,13 +55,9 @@ bool Server::botCheckBadWords(const std::string &message) {
 }
 
 /*
- * Procesa un mensaje de canal a través del ModBot.
- * Retorna true si el mensaje fue bloqueado (contiene bad words).
- * Retorna false si el mensaje es limpio y puede enviarse normalmente.
- *
- * Sistema de strikes:
- * - 1er/2do strike: warning al usuario, mensaje bloqueado
- * - 3er strike: KICK del canal, strikes reseteados a 0
+ * Processes a channel message through the mod bot.
+ * Returns true if the message was blocked (bad word detected).
+ * Returns false if the message is clean and should be delivered normally.
  */
 bool Server::botProcessMessage(Client *client, Channel *channel,
                                const std::string &target,
@@ -85,34 +68,28 @@ bool Server::botProcessMessage(Client *client, Channel *channel,
   int fd = client->getClientFd();
   std::string nick = client->getNickname();
 
-  // Incrementar strikes
   _botWarnings[fd]++;
   int strikes = _botWarnings[fd];
 
   if (strikes < 3) {
-    // Warning al usuario (solo visible para él)
     std::string warnMsg = ":ModBot PRIVMSG " + target + " :" +
-                          "\x03" "04⚠️  " + nick + ", watch your language! " +
+                          "\x03" "04\xe2\x9a\xa0\xef\xb8\x8f  " + nick + ", watch your language! " +
                           "Warning " + (strikes == 1 ? "1" : "2") +
                           "/3\x03\r\n";
     ::send(fd, warnMsg.c_str(), warnMsg.length(), 0);
   } else {
-    // 3er strike: notificar al canal y KICK
     std::string kickNotice = ":ModBot PRIVMSG " + target + " :" +
-                             "\x03" "04🔨 " + nick +
+                             "\x03" "04\xf0\x9f\x94\xa8 " + nick +
                              " has been kicked for inappropriate language.\x03\r\n";
     channel->broadcastMessage(kickNotice, -1);
 
-    // KICK del canal
     std::string kickMsg = ":ModBot KICK " + target + " " + nick +
                           " :Inappropriate language (3/3 warnings)\r\n";
     channel->broadcastMessage(kickMsg, -1);
     channel->removeMember(fd);
 
-    // Reset de strikes
     _botWarnings[fd] = 0;
 
-    // Si el canal queda vacío, destruirlo
     if (channel->getMemberCount() == 0) {
       std::map<std::string, Channel *>::iterator it = _channels.find(target);
       if (it != _channels.end()) {
@@ -121,5 +98,5 @@ bool Server::botProcessMessage(Client *client, Channel *channel,
       }
     }
   }
-  return true; // Mensaje bloqueado
+  return true;
 }

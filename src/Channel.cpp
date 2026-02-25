@@ -13,87 +13,58 @@
 #include "../include/Channel.hpp"
 #include "../include/Client.hpp"
 
-// Constructor: crea un canal con el nombre especificado
+/* Initializes channel with the given name; all modes off by default. */
 Channel::Channel(std::string name)
     : _name(name), _topic(""), _inviteOnly(false), _topicRestricted(false),
       _key(""), _userLimit(0) {
 }
 
-// Destructor
+/* Destructor. */
 Channel::~Channel() {
 }
 
-// ========== GETTERS ==========
-
-// Obtiene el nombre del canal
+/* Returns the channel name. */
 std::string Channel::getName() const { return _name; }
 
-// Obtiene el topic del canal
+/* Returns the current topic. */
 std::string Channel::getTopic() const { return _topic; }
 
-// Obtiene el número de miembros del canal
+/* Returns the number of members in the channel. */
 int Channel::getMemberCount() const { return _members.size(); }
 
-// ========== SETTERS ==========
-
-// Establece el topic del canal
+/* Sets the channel topic. */
 void Channel::setTopic(const std::string topic) { _topic = topic; }
 
-// ========== GESTIÓN DE MIEMBROS ==========
-
-/*
- * Añade un cliente como miembro del canal.
- * Si el cliente ya es miembro, no se duplica (el mapa sobrescribe).
- */
+/* Adds client as a member. Overwrites silently on duplicate fd. */
 void Channel::addMember(Client *client) {
   _members[client->getClientFd()] = client;
 }
 
-/*
- * Elimina un miembro del canal por su file descriptor.
- * También lo elimina de la lista de operadores si lo es.
- */
+/* Removes member and any operator entry for the given fd. */
 void Channel::removeMember(int fd) {
   _members.erase(fd);
   _operators.erase(fd);
 }
 
-/*
- * Verifica si un file descriptor corresponde a un miembro del canal.
- */
+/* Returns true if fd belongs to a channel member. */
 bool Channel::isMember(int fd) const {
   return _members.find(fd) != _members.end();
 }
 
-// ========== GESTIÓN DE OPERADORES ==========
-
-/*
- * Añade un cliente como operador del canal.
- * El cliente debe ser también miembro del canal.
- */
+/* Promotes client to operator. Client must already be a member. */
 void Channel::addOperator(Client *client) {
   _operators[client->getClientFd()] = client;
 }
 
-/*
- * Elimina un operador por su file descriptor.
- */
+/* Removes operator status for the given fd. */
 void Channel::removeOperator(int fd) { _operators.erase(fd); }
 
-/*
- * Verifica si un file descriptor corresponde a un operador del canal.
- */
+/* Returns true if fd belongs to a channel operator. */
 bool Channel::isOperator(int fd) const {
   return _operators.find(fd) != _operators.end();
 }
 
-// ========== MENSAJERÍA ==========
-
-/*
- * Envía un mensaje a todos los miembros del canal.
- * excludeFd: file descriptor del cliente que NO debe recibir el mensaje
- *            (normalmente el emisor). Usar -1 para enviar a todos.
- */
+/* Sends message to all members. excludeFd skips that sender (-1 = send to all). */
 void Channel::broadcastMessage(const std::string message, int excludeFd) {
   std::map<int, Client *>::iterator it;
   for (it = _members.begin(); it != _members.end(); ++it) {
@@ -103,13 +74,7 @@ void Channel::broadcastMessage(const std::string message, int excludeFd) {
   }
 }
 
-// ========== UTILIDADES ==========
-
-/*
- * Genera la lista de nicknames del canal para RPL_NAMREPLY (353).
- * Los operadores se prefijan con '@'.
- * Formato: "@operador1 miembro2 miembro3"
- */
+/* Returns space-separated nick list; operators prefixed with '@'. Used for RPL_NAMREPLY (353). */
 std::string Channel::getMemberList() const {
   std::string list;
   std::map<int, Client *>::const_iterator it;
@@ -123,30 +88,39 @@ std::string Channel::getMemberList() const {
   return list;
 }
 
-// ========== MODOS DEL CANAL ==========
-
+/* Returns the invite-only flag (mode +i). */
 bool Channel::getInviteOnly() const { return _inviteOnly; }
+
+/* Sets the invite-only flag (mode +i). */
 void Channel::setInviteOnly(bool inviteOnly) { _inviteOnly = inviteOnly; }
 
+/* Returns the topic-restricted flag (mode +t). */
 bool Channel::getTopicRestricted() const { return _topicRestricted; }
+
+/* Sets the topic-restricted flag (mode +t). */
 void Channel::setTopicRestricted(bool topicRestricted) {
   _topicRestricted = topicRestricted;
 }
 
+/* Returns the channel key (mode +k). */
 std::string Channel::getKey() const { return _key; }
+
+/* Sets the channel key (mode +k). */
 void Channel::setKey(const std::string key) { _key = key; }
 
+/* Returns the user limit (mode +l); 0 means no limit. */
 int Channel::getUserLimit() const { return _userLimit; }
+
+/* Sets the user limit (mode +l). */
 void Channel::setUserLimit(int limit) { _userLimit = limit; }
 
-// ========== LISTA DE INVITADOS ==========
-
+/* Adds nickname to the invite list; ignores duplicates. */
 void Channel::addInvite(const std::string nickname) {
-  // Evitar duplicados
   if (!isInvited(nickname))
     _inviteList.push_back(nickname);
 }
 
+/* Returns true if nickname is in the invite list. */
 bool Channel::isInvited(const std::string nickname) const {
   for (size_t i = 0; i < _inviteList.size(); i++) {
     if (_inviteList[i] == nickname)
@@ -155,6 +129,7 @@ bool Channel::isInvited(const std::string nickname) const {
   return false;
 }
 
+/* Removes nickname from the invite list. */
 void Channel::removeInvite(const std::string nickname) {
   for (std::vector<std::string>::iterator it = _inviteList.begin();
        it != _inviteList.end(); ++it) {
@@ -165,10 +140,7 @@ void Channel::removeInvite(const std::string nickname) {
   }
 }
 
-/*
- * Genera un string con los modos activos del canal.
- * Formato: "+itk clave" o "+tl 10" etc.
- */
+/* Returns active mode string with parameters (e.g. "+itk key" or "+tl 10"). */
 std::string Channel::getModeString() const {
   std::string modes = "+";
   std::string params;
