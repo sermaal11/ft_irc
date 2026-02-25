@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parsing.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
+/*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/17 14:10:39 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/23 21:05:02 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/25 13:23:17 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -228,7 +228,6 @@ void Server::handleClientData(int i) {
 
     proccesCommand(client, command);
 
-    // Guard against use-after-free if the client was removed during processing
     if (_clients.find(clientFd) == _clients.end())
       return;
 

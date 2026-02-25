@@ -6,7 +6,7 @@
 /*   By: sergio <sergio@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:48:06 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/25 11:22:08 by sergio           ###   ########.fr       */
+/*   Updated: 2026/02/25 13:23:52 by sergio           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -171,7 +171,6 @@ void Server::handleJoin(Client *client) {
   if (channel->isMember(client->getClientFd()))
     return;
 
-  // Mode +i: invite-only
   if (!isNew && channel->getInviteOnly()) {
     if (!channel->isInvited(client->getNickname())) {
       std::string err = ":" + _serverName + " 473 " + client->getNickname() + " " +
@@ -181,7 +180,6 @@ void Server::handleJoin(Client *client) {
     }
   }
 
-  // Mode +k: channel key
   if (!isNew && !channel->getKey().empty()) {
     std::string key = client->extractToken();
     if (key != channel->getKey()) {
@@ -192,7 +190,6 @@ void Server::handleJoin(Client *client) {
     }
   }
 
-  // Mode +l: user limit
   if (!isNew && channel->getUserLimit() > 0) {
     if (channel->getMemberCount() >= channel->getUserLimit()) {
       std::string err = ":" + _serverName + " 471 " + client->getNickname() + " " +
