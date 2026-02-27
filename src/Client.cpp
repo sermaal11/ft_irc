@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:48:43 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/23 21:10:25 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/27 12:27:59 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ Client::Client(int fd)
       _hasPassGiven(false),
       _hasNickGiven(false),
       _inputBuffer(""),
+      _outputBuffer(""),
       _hasUserGiven(false),
       _isRegistered(false)
 {
@@ -126,4 +127,37 @@ void Client::clearInputBuffer()
 void Client::setHasUserGiven(const bool hasUserGiven)
 {
     _hasUserGiven = hasUserGiven;
+}
+
+/* Appends msg to the output buffer; actual send is deferred until POLLOUT. */
+void Client::queueOutput(const std::string &msg)
+{
+    _outputBuffer += msg;
+}
+
+/*
+ * Sends as much of _outputBuffer as possible via ::send().
+ * Trims the sent bytes from the front of the buffer.
+ * Returns true when the buffer is fully drained, false if data remains
+ * or a non-fatal error (EAGAIN/EWOULDBLOCK) occurred.
+ */
+bool Client::flushOutput()
+{
+    if (_outputBuffer.empty())
+        return true;
+    ssize_t sent = ::send(_clientFd, _outputBuffer.c_str(), _outputBuffer.length(), 0);
+    if (sent < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return false;
+        // Fatal error: caller (Server) will detect and remove the client
+        return false;
+    }
+    _outputBuffer.erase(0, static_cast<size_t>(sent));
+    return _outputBuffer.empty();
+}
+
+/* Returns true if there is unsent data pending in the output buffer. */
+bool Client::hasPendingOutput() const
+{
+    return !_outputBuffer.empty();
 }

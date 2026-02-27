@@ -69,7 +69,7 @@ void Channel::broadcastMessage(const std::string message, int excludeFd) {
   std::map<int, Client *>::iterator it;
   for (it = _members.begin(); it != _members.end(); ++it) {
     if (it->first != excludeFd) {
-      ::send(it->first, message.c_str(), message.length(), 0);
+      it->second->queueOutput(message);
     }
   }
 }

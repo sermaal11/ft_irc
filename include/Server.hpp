@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 12:43:31 by sergio            #+#    #+#             */
-/*   Updated: 2026/02/23 23:28:53 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/27 12:28:01 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,6 +102,15 @@ private:
 
   // Sends IRC welcome sequence (001-004) to a newly registered client
   void sendWelcomeMessage(Client *client);
+
+  // Queues msg in the client's output buffer and enables POLLOUT for that fd
+  void sendMsg(int fd, const std::string &msg);
+
+  // Enables POLLOUT on the given fd's entry in _pollFds
+  void setPollOut(int fd);
+
+  // Enables POLLOUT for every client that has data in its output buffer
+  void enablePollOutForPendingClients();
 
 public:
   Server(int port, std::string &password);

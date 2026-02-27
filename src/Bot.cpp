@@ -76,7 +76,7 @@ bool Server::botProcessMessage(Client *client, Channel *channel,
                           "\x03" "04\xe2\x9a\xa0\xef\xb8\x8f  " + nick + ", watch your language! " +
                           "Warning " + (strikes == 1 ? "1" : "2") +
                           "/3\x03\r\n";
-    ::send(fd, warnMsg.c_str(), warnMsg.length(), 0);
+    sendMsg(fd, warnMsg);
   } else {
     std::string kickNotice = ":ModBot PRIVMSG " + target + " :" +
                              "\x03" "04\xf0\x9f\x94\xa8 " + nick +

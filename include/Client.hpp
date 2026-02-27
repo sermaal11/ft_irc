@@ -6,7 +6,7 @@
 /*   By: volmer <volmer@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/16 22:36:15 by volmer            #+#    #+#             */
-/*   Updated: 2026/02/23 21:09:17 by volmer           ###   ########.fr       */
+/*   Updated: 2026/02/27 12:26:16 by volmer           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,7 @@ private:
   bool _hasPassGiven;
   bool _hasNickGiven;
   std::string _inputBuffer;
+  std::string _outputBuffer;
   bool _hasUserGiven;
   bool _isRegistered;
 
@@ -78,6 +79,15 @@ public:
 
   // Extracts and removes the first complete line from the buffer (without \r\n)
   std::string extractCommand();
+
+  // Appends msg to the output buffer (to be flushed when POLLOUT fires)
+  void queueOutput(const std::string &msg);
+
+  // Sends as much of the output buffer as possible; returns true when fully emptied
+  bool flushOutput();
+
+  // Returns true if there is unsent data in the output buffer
+  bool hasPendingOutput() const;
 
   // Extracts and removes the first whitespace-delimited token from the buffer
   std::string extractToken();

@@ -24,7 +24,7 @@ void Server::proccesCommand(Client *client, std::string command) {
                      command == "QUIT");
   if (!preAuthCmd && !client->getIsRegistered()) {
     std::string err = ":" + _serverName + " 451 * :You have not registered\r\n";
-    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    sendMsg(client->getClientFd(), err);
     return;
   }
 
@@ -38,7 +38,7 @@ void Server::proccesCommand(Client *client, std::string command) {
     std::string nickname = client->extractToken();
     if (nickname.empty()) {
       std::string err = ":" + _serverName + " 431 * :No nickname given\r\n";
-      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      sendMsg(client->getClientFd(), err);
     } else {
       bool valid = nickname.length() <= 9 && std::isalpha(nickname[0]);
       for (size_t i = 1; valid && i < nickname.length(); ++i) {
@@ -50,13 +50,13 @@ void Server::proccesCommand(Client *client, std::string command) {
       if (!valid) {
         std::string err = ":" + _serverName + " 432 * " + nickname +
                           " :Erroneous nickname\r\n";
-        ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+        sendMsg(client->getClientFd(), err);
       } else {
         Client *existing = findClientByNick(nickname);
         if (existing != NULL && existing->getClientFd() != client->getClientFd()) {
           std::string err = ":" + _serverName + " 433 * " + nickname +
                             " :Nickname is already in use\r\n";
-          ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+          sendMsg(client->getClientFd(), err);
         } else {
           if (client->getIsRegistered()) {
             std::string oldNick = client->getNickname();
@@ -70,7 +70,7 @@ void Server::proccesCommand(Client *client, std::string command) {
               }
             }
             if (!notified)
-              ::send(client->getClientFd(), nickMsg.c_str(), nickMsg.length(), 0);
+              sendMsg(client->getClientFd(), nickMsg);
           }
           client->setNickname(nickname);
           client->setHasNickGiven(true);
@@ -87,7 +87,7 @@ void Server::proccesCommand(Client *client, std::string command) {
     if (client->getIsRegistered()) {
       std::string err = ":" + _serverName + " 462 " + client->getNickname() +
                         " :You may not reregister\r\n";
-      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      sendMsg(client->getClientFd(), err);
       return;
     }
     std::string username = client->extractToken();
@@ -106,7 +106,7 @@ void Server::proccesCommand(Client *client, std::string command) {
       checkClientRegister(client);
     } else {
       std::string err = ":" + _serverName + " 464 * :Password incorrect\r\n";
-      ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+      sendMsg(client->getClientFd(), err);
     }
   }
   /*
@@ -119,7 +119,7 @@ void Server::proccesCommand(Client *client, std::string command) {
 
     if (start == std::string::npos) {
       std::string pongReply = "PONG\r\n";
-      ::send(client->getClientFd(), pongReply.c_str(), pongReply.length(), 0);
+      sendMsg(client->getClientFd(), pongReply);
     } else {
       size_t end = token.find_first_of("\r\n", start);
       if (end != std::string::npos)
@@ -134,7 +134,7 @@ void Server::proccesCommand(Client *client, std::string command) {
         pongReply = "PONG " + token + "\r\n";
       else
         pongReply = "PONG :" + token + "\r\n";
-      ::send(client->getClientFd(), pongReply.c_str(), pongReply.length(), 0);
+      sendMsg(client->getClientFd(), pongReply);
     }
   }
   /* PRIVMSG: sends a message to a channel or user. */
@@ -175,7 +175,7 @@ void Server::proccesCommand(Client *client, std::string command) {
   } else {
     std::string err = ":" + _serverName + " 421 " + client->getNickname() +
                       " " + command + " :Unknown command\r\n";
-    ::send(client->getClientFd(), err.c_str(), err.length(), 0);
+    sendMsg(client->getClientFd(), err);
   }
 }
 
