@@ -17,19 +17,6 @@
 
 class Client;
 
-/*
- * IRC channel: manages members, operators, modes, and topic.
- *
- * _name            : Channel name (e.g. "#general")
- * _topic           : Current topic (empty by default)
- * _inviteOnly      : Mode +i — only invited users may join
- * _topicRestricted : Mode +t — only operators may change the topic
- * _key             : Mode +k — channel password (empty = no key)
- * _userLimit       : Mode +l — max users (0 = no limit)
- * _members         : fd -> Client* map of all members
- * _operators       : fd -> Client* map of operators
- * _inviteList      : Nicknames invited under mode +i
- */
 class Channel {
 private:
   std::string _name;
@@ -62,10 +49,8 @@ public:
   void removeOperator(int fd);
   bool isOperator(int fd) const;
 
-  // Sends message to all members; excludeFd skips one sender (-1 = send to all)
   void broadcastMessage(const std::string message, int excludeFd);
 
-  // Returns space-separated nick list; operators prefixed with '@' (RPL_NAMREPLY 353)
   std::string getMemberList() const;
 
   bool getInviteOnly() const;
@@ -81,7 +66,6 @@ public:
   bool isInvited(const std::string nickname) const;
   void removeInvite(const std::string nickname);
 
-  // Returns active mode string with parameters (e.g. "+itk key")
   std::string getModeString() const;
 };
 

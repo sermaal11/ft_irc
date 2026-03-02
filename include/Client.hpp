@@ -15,20 +15,6 @@
 
 #include "Utils.hpp"
 
-/*
- * Connected IRC client: stores identity, registration state, and input buffer.
- *
- * _clientFd        : Socket file descriptor
- * _nickname        : IRC nickname (e.g. "sergio")
- * _username        : Username from USER command
- * _hostname        : Client hostname
- * _isAuthenticated : True after correct PASS
- * _hasPassGiven    : True after PASS sent
- * _hasNickGiven    : True after NICK sent
- * _hasUserGiven    : True after USER sent
- * _isRegistered    : True after welcome (001) sent
- * _inputBuffer     : Accumulates raw socket data until full commands (\r\n)
- */
 class Client {
 private:
   int _clientFd;
@@ -71,25 +57,18 @@ public:
   void setInputBuffer(const std::string inputBuffer);
   void clearInputBuffer();
 
-  // Appends raw data to the buffer (data may arrive fragmented)
   void addToBuffer(const std::string input);
 
-  // Returns true if at least one complete command (\n) is in the buffer
   bool hasAllCommand();
 
-  // Extracts and removes the first complete line from the buffer (without \r\n)
   std::string extractCommand();
 
-  // Appends msg to the output buffer (to be flushed when POLLOUT fires)
   void queueOutput(const std::string &msg);
 
-  // Sends as much of the output buffer as possible; returns true when fully emptied
   bool flushOutput();
 
-  // Returns true if there is unsent data in the output buffer
   bool hasPendingOutput() const;
 
-  // Extracts and removes the first whitespace-delimited token from the buffer
   std::string extractToken();
 };
 
