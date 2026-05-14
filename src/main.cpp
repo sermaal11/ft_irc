@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
 	if (argc != 3) 
 	{
-		std::cerr << RED << "ERROR: Usage -> ./ft_irc <port> <password>" << RESET << "\n";
+		std::cerr << RED << "ERROR: Usage -> ./ircserv <port> <password>" << RESET << "\n";
 		return (1);
 	}
 	for (size_t i = 0; argv[1][i]; i++) 

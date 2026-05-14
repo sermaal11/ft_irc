@@ -159,12 +159,6 @@ void Server::removeClientFromChannels(Client *client, const std::string &reason)
  */
 void Server::handleQuit(Client *client, const std::string &quitMessage) {
   std::string reason = quitMessage.empty() ? "Client Quit" : quitMessage;
-  std::string nick = client->getNickname().empty() ? "*" : client->getNickname();
-  std::string errorMsg =
-      "ERROR :Closing link (" + nick + ") [Quit: " + reason + "]\r\n";
-  // Queue the ERROR message then flush immediately (best effort) before closing
-  client->queueOutput(errorMsg);
-  client->flushOutput();
   removeClient(client->getClientFd(), reason);
 }
 
@@ -519,7 +513,7 @@ void Server::handleInvite(Client *client, const std::string &params) {
     return;
   }
 
-  if (channel->getInviteOnly() && !channel->isOperator(client->getClientFd())) {
+  if (!channel->isOperator(client->getClientFd())) {
     std::string err = ":" + _serverName + " 482 " + client->getNickname() + " " +
                       channelName + " :You're not channel operator\r\n";
     sendMsg(client->getClientFd(), err);

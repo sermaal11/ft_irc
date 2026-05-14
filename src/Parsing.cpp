@@ -40,7 +40,7 @@ void Server::proccesCommand(Client *client, std::string command) {
       std::string err = ":" + _serverName + " 431 * :No nickname given\r\n";
       sendMsg(client->getClientFd(), err);
     } else {
-      bool valid = nickname.length() <= 9 && std::isalpha(nickname[0]);
+      bool valid = nickname.length() <= 30 && std::isalpha(nickname[0]);
       for (size_t i = 1; valid && i < nickname.length(); ++i) {
         char c = nickname[i];
         valid = std::isalnum(c) || c == '-' || c == '[' || c == ']' ||
@@ -90,7 +90,17 @@ void Server::proccesCommand(Client *client, std::string command) {
       sendMsg(client->getClientFd(), err);
       return;
     }
-    std::string username = client->extractToken();
+    std::istringstream iss(client->getInputBuffer());
+    std::string username, hostname, servername, realname;
+    iss >> username >> hostname >> servername;
+    std::getline(iss, realname);
+    if (username.empty() || hostname.empty() || servername.empty() ||
+        realname.find_first_not_of(" \t") == std::string::npos) {
+      std::string err = ":" + _serverName + " 461 " + client->getNickname() +
+                        " USER :Not enough parameters\r\n";
+      sendMsg(client->getClientFd(), err);
+      return;
+    }
     client->setUsername(username);
     client->setHasUserGiven(true);
     checkClientRegister(client);
@@ -221,6 +231,8 @@ void Server::handleClientData(int i) {
       restOfLine = line.substr(pos);
     }
 
+    std::string pendingInput = client->getInputBuffer();
+
     if (!restOfLine.empty())
       client->setInputBuffer(restOfLine);
     else
@@ -231,6 +243,6 @@ void Server::handleClientData(int i) {
     if (_clients.find(clientFd) == _clients.end())
       return;
 
-    client->clearInputBuffer();
+    client->setInputBuffer(pendingInput);
   }
 }
